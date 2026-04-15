@@ -155,3 +155,54 @@ st.subheader("Orders Over Time")
 fig, ax = plt.subplots()
 filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().plot(ax=ax)
 st.pyplot(fig)
+
+st.markdown("##  Advanced Controls")
+
+show_raw = st.checkbox("Show Raw Data")
+
+if show_raw:
+    st.dataframe(filtered_df)
+
+search_state = st.text_input("🔍 Search State")
+
+if search_state:
+    st.write(filtered_df[filtered_df['State/Province'].str.contains(search_state, case=False)])
+
+st.subheader("Best & Worst Routes")
+
+top_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nsmallest(5)
+worst_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nlargest(5)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.write(" Fastest Routes")
+    st.dataframe(top_routes)
+
+with col2:
+    st.write("Slowest Routes")
+    st.dataframe(worst_routes)
+
+st.subheader("Performance Comparison")
+
+fig, ax = plt.subplots()
+sns.barplot(data=filtered_df, x='Ship Mode', y='Lead Time', ax=ax)
+plt.xticks(rotation=45)
+st.pyplot(fig)
+st.subheader("Correlation Heatmap")
+
+corr = filtered_df[['Lead Time']].corr()
+
+fig, ax = plt.subplots()
+sns.heatmap(corr, annot=True, cmap='coolwarm', ax=ax)
+st.pyplot(fig)
+st.subheader("⏳ Delay Trend Over Time")
+
+delay_trend = filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M'))['Delayed'].apply(lambda x: (x=='Delayed').mean())
+
+fig, ax = plt.subplots()
+delay_trend.plot(ax=ax)
+plt.grid()
+st.pyplot(fig)
+
+
