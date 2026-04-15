@@ -205,12 +205,21 @@ worst = filtered_df.groupby('Region')['Lead Time'].mean().idxmax()
 st.error(f" {worst} region has highest delay")
 st.subheader(" Detailed Data View")
 st.dataframe(filtered_df.sort_values(by='Lead Time', ascending=False))
-st.subheader("🚨 Delay Heat by State")
+st.subheader("Delay Heat by State")
 
 delay_rate = filtered_df.groupby('State/Province')['Delayed'].apply(lambda x: (x=='Delayed').mean())
 
 fig, ax = plt.subplots(figsize=(4,3))
-delay_rate.sort_values().plot(kind='barh', color='red', ax=ax)
+delay_rate = filtered_df.groupby('State/Province')['Delayed']\
+    .apply(lambda x: (x=='Delayed').mean())\
+    .sort_values(ascending=False)\
+    .head(10)  
+
+fig, ax = plt.subplots(figsize=(4,3))
+delay_rate.plot(kind='barh', color='red', ax=ax)
+
+plt.tight_layout()
+st.pyplot(fig, use_container_width=False)
 st.pyplot(fig, use_container_width=False)
 with st.spinner("Analyzing shipping data..."):
     import time
