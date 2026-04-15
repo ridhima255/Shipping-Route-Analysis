@@ -48,10 +48,31 @@ route_eff.plot(kind='barh', ax=ax)
 st.pyplot(fig)
 
 
-# GEOGRAPHIC SHIPPING MAP 
-st.subheader(" Geographic Shipping Map")
+# GEOGRAPHIC SHIPPING MAP
+
+
+st.subheader("🗺Geographic Shipping Map")
+
+state_coords = {
+    "Texas": (31.9686, -99.9018),
+    "California": (36.7783, -119.4179),
+    "New York": (43.0000, -75.0000),
+    "Florida": (27.6648, -81.5158),
+    "Illinois": (40.0000, -89.0000),
+    "Pennsylvania": (41.2033, -77.1945),
+    "Ohio": (40.4173, -82.9071),
+    "Georgia": (32.1656, -82.9001),
+    "North Carolina": (35.7822, -80.7935),
+    "Michigan": (44.3148, -85.6024)
+}
+
 geo_df = filtered_df.groupby('State/Province').size().reset_index(name='Orders')
-st.map(geo_df.rename(columns={'State/Province':'location'}))
+
+# Map lat-long
+geo_df['latitude'] = geo_df['State/Province'].map(lambda x: state_coords.get(x, (37.0902, -95.7129))[0])
+geo_df['longitude'] = geo_df['State/Province'].map(lambda x: state_coords.get(x, (37.0902, -95.7129))[1])
+
+st.map(geo_df)
 
 
 # LEAD TIME COMPARISON 
