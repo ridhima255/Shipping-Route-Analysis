@@ -128,35 +128,35 @@ st.dataframe(leaderboard)
 # CLEAN GRID GRAPHS
 colA, colB = st.columns(2)
 with colA:
-    st.subheader("📊 Lead Time Distribution")
+    st.subheader("Lead Time Distribution")
     fig, ax = plt.subplots()
     sns.histplot(filtered_df['Lead Time'], bins=20, kde=True, ax=ax)
     st.pyplot(fig)
 with colB:
-    st.subheader("🥧 Delay Distribution")
+    st.subheader(" Delay Distribution")
     fig, ax = plt.subplots()
     filtered_df['Delayed'].value_counts().plot(kind='pie', autopct='%1.1f%%', ax=ax)
     st.pyplot(fig)
 colC, colD = st.columns(2)
 with colC:
-    st.subheader("📦 Orders by State")
+    st.subheader(" Orders by State")
     fig, ax = plt.subplots()
     filtered_df['State/Province'].value_counts().head(10).plot(kind='bar', ax=ax)
     plt.xticks(rotation=45)
     st.pyplot(fig)
 with colD:
-    st.subheader("🚚 Ship Mode Count")
+    st.subheader(" Ship Mode Count")
     fig, ax = plt.subplots()
     filtered_df['Ship Mode'].value_counts().plot(kind='bar', ax=ax)
     st.pyplot(fig)
     
 #  TREND
 st.subheader("Orders Over Time")
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(6,4))
 filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().plot(ax=ax)
 st.pyplot(fig)
 
-st.markdown("##  Advanced Controls")
+st.markdown("##  Data Exploration Panel")
 
 show_raw = st.checkbox("Show Raw Data")
 
@@ -185,7 +185,7 @@ with col2:
 
 st.subheader("Performance Comparison")
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(6,4))
 sns.barplot(data=filtered_df, x='Ship Mode', y='Lead Time', ax=ax)
 plt.xticks(rotation=45)
 st.pyplot(fig)
@@ -193,14 +193,14 @@ st.subheader("Correlation Heatmap")
 
 corr = filtered_df[['Lead Time']].corr()
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(6,4))
 sns.heatmap(corr, annot=True, cmap='coolwarm', ax=ax)
 st.pyplot(fig)
 st.subheader("⏳ Delay Trend Over Time")
 
 delay_trend = filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M'))['Delayed'].apply(lambda x: (x=='Delayed').mean())
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(6,4))
 delay_trend.plot(ax=ax)
 plt.grid()
 st.pyplot(fig)
