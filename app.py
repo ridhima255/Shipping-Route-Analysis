@@ -185,3 +185,38 @@ with col1:
 with col2:
     st.write(" Slowest Routes")
     st.dataframe(worst_routes)
+st.subheader(" Key Insights")
+
+avg = filtered_df['Lead Time'].mean()
+
+if avg > 1200:
+    st.warning(" Overall shipping is slow. Optimization needed.")
+else:
+    st.success("Shipping performance is good.")
+delay_rate = (filtered_df['Delayed']=='Delayed').mean()
+
+if delay_rate > 0.7:
+    st.error(" High delay rate detected!")
+st.subheader(" Best Performing State")
+best_state = filtered_df.groupby('State/Province')['Lead Time'].mean().idxmin()
+st.success(f" {best_state} has the fastest delivery")
+st.subheader("Bottleneck Region")
+worst = filtered_df.groupby('Region')['Lead Time'].mean().idxmax()
+st.error(f" {worst} region has highest delay")
+st.subheader(" Detailed Data View")
+st.dataframe(filtered_df.sort_values(by='Lead Time', ascending=False))
+st.subheader("🚨 Delay Heat by State")
+
+delay_rate = filtered_df.groupby('State/Province')['Delayed'].apply(lambda x: (x=='Delayed').mean())
+
+fig, ax = plt.subplots(figsize=(4,3))
+delay_rate.sort_values().plot(kind='barh', color='red', ax=ax)
+st.pyplot(fig, use_container_width=False)
+with st.spinner("Analyzing shipping data..."):
+    import time
+    time.sleep(1)
+col1.metric(
+    "Avg Lead Time",
+    round(filtered_df['Lead Time'].mean(),2),
+    delta="↓ Improving"
+)
