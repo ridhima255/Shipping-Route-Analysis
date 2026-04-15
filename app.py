@@ -185,8 +185,9 @@ with col2:
 
 st.subheader("Performance Comparison")
 
-fig, ax = plt.subplots(figsize=(4,2.5))
+fig, ax = plt.subplots(figsize=(5,4))
 plt.tight_layout()
+st.pyplot(fig)
 sns.barplot(data=filtered_df, x='Ship Mode', y='Lead Time', ax=ax)
 plt.xticks(rotation=45)
 st.pyplot(fig)
@@ -194,15 +195,17 @@ st.subheader("Correlation Heatmap")
 
 corr = filtered_df[['Lead Time']].corr()
 
-fig, ax = plt.subplots(figsize=(4,2.5))
+fig, ax = plt.subplots(figsize=(5,4))
 plt.tight_layout()
+st.pyplot(fig)
 sns.heatmap(corr, annot=True, cmap='coolwarm', ax=ax)
 st.pyplot(fig)
 st.subheader("⏳ Delay Trend Over Time")
 
 delay_trend = filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M'))['Delayed'].apply(lambda x: (x=='Delayed').mean())
-fig, ax = plt.subplots(figsize=(4,2.5))
+fig, ax = plt.subplots(figsize=(5,4))
 plt.tight_layout()
+st.pyplot(fig)
 delay_trend.plot(ax=ax)
 plt.grid()
 st.pyplot(fig)
