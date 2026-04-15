@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 import seaborn as sns
 import matplotlib.pyplot as plt
+import plotly.express as px
 
 st.set_page_config(layout="wide")
 
@@ -16,9 +17,8 @@ df['Lead Time'] = (df['Ship Date'] - df['Order Date']).dt.days
 df['Delayed'] = df['Lead Time'].apply(lambda x: 'Delayed' if x > 7 else 'On-Time')
 
 
-# FILTERS
-#
-st.sidebar.header("Filters")
+# SIDEBAR FILTERS
+st.sidebar.header("🔍 Filters")
 selected_state = st.sidebar.multiselect(
     "State", df['State/Province'].unique(),
     default=df['State/Province'].unique()
@@ -32,94 +32,137 @@ filtered_df = df[
     (df['Ship Mode'].isin(selected_mode))
 ]
 
-#KPI Section
+
+# KPI SECTION
+
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Avg Lead Time", round(filtered_df['Lead Time'].mean(),2))
 col2.metric("Total Orders", len(filtered_df))
 col3.metric("Max Lead Time", filtered_df['Lead Time'].max())
-col4.metric("Delayed Orders", filtered_df['Delayed'].value_counts().get('Delayed',0))
+col4.metric("Delay %", f"{(filtered_df['Delayed']=='Delayed').mean()*100:.1f}%")
 
 
-# ROUTE EFFICIENCY OVERVIEW 
-st.subheader("Route Efficiency Overview")
-route_eff = filtered_df.groupby('State/Province')['Lead Time'].mean().sort_values().head(10)
+# ROUTE EFFICIENCY
+
+st.subheader(" Route Efficiency Overview")
+route_eff = filtered_df.groupby('Ship Mode')['Lead Time'].mean()
 fig, ax = plt.subplots()
 route_eff.plot(kind='barh', ax=ax)
 st.pyplot(fig)
 
 
-# GEOGRAPHIC SHIPPING MAP
+# LEADERBOARD
+st.subheader(" Route Leaderboard")
+leaderboard = filtered_df.groupby('Ship Mode').agg({
+    'Lead Time':'mean',
+    'Order ID':'count'
+}).reset_index()
+leaderboard.columns = ['Ship Mode','Avg Lead Time','Total Orders']
+st.dataframe(leaderboard)
 
 
-st.subheader("🗺Geographic Shipping Map")
+# US HEATMAP
 
-state_coords = {
-    "Texas": (31.9686, -99.9018),
-    "California": (36.7783, -119.4179),
-    "New York": (43.0000, -75.0000),
-    "Florida": (27.6648, -81.5158),
-    "Illinois": (40.0000, -89.0000),
-    "Pennsylvania": (41.2033, -77.1945),
-    "Ohio": (40.4173, -82.9071),
-    "Georgia": (32.1656, -82.9001),
-    "North Carolina": (35.7822, -80.7935),
-    "Michigan": (44.3148, -85.6024)
-}
-
-geo_df = filtered_df.groupby('State/Province').size().reset_index(name='Orders')
-
-# Map lat-long
-geo_df['latitude'] = geo_df['State/Province'].map(lambda x: state_coords.get(x, (37.0902, -95.7129))[0])
-geo_df['longitude'] = geo_df['State/Province'].map(lambda x: state_coords.get(x, (37.0902, -95.7129))[1])
-
-st.map(geo_df)
+st.subheader("🌍 Geographic Shipping Heatmap")
+state_map = filtered_df.groupby('State/Province')['Lead Time'].mean().reset_index()
+fig = px.choropleth(
+    state_map,
+    locations='State/Province',
+    locationmode="USA-states",
+    color='Lead Time',
+    scope="usa",
+    color_continuous_scale="RdYlGn_r"
+)
+st.plotly_chart(fig, use_container_width=True)
 
 
-# LEAD TIME COMPARISON 
-st.subheader(" Lead Time Comparison by Ship Mode")
-fig, ax = plt.subplots()
-sns.boxplot(data=filtered_df, x='Ship Mode', y='Lead Time', ax=ax)
-st.pyplot(fig)
-
-
-#  OTHER VISUALS
-st.subheader(" Lead Time Distribution")
+#  MULTIPLE GRAPHS 
+# 1
+st.subheader("Lead Time Distribution")
 fig, ax = plt.subplots()
 sns.histplot(filtered_df['Lead Time'], bins=20, ax=ax)
 st.pyplot(fig)
 
+# 2
 st.subheader("Orders by State")
-state_count = filtered_df['State/Province'].value_counts().head(10)
-
 fig, ax = plt.subplots()
-state_count.plot(kind='bar', ax=ax)
+filtered_df['State/Province'].value_counts().head(10).plot(kind='bar', ax=ax)
 st.pyplot(fig)
 
-st.subheader("Region Performance")
-region = filtered_df.groupby('Region')['Lead Time'].mean()
-
+# 3
+st.subheader(" Region Performance")
 fig, ax = plt.subplots()
-region.plot(kind='bar', ax=ax)
+filtered_df.groupby('Region')['Lead Time'].mean().plot(kind='bar', ax=ax)
 st.pyplot(fig)
 
-st.subheader("Delay Distribution")
-delay_counts = filtered_df['Delayed'].value_counts()
-
+# 4
+st.subheader(" Delay Distribution")
 fig, ax = plt.subplots()
-ax.pie(delay_counts, labels=delay_counts.index, autopct='%1.1f%%')
+filtered_df['Delayed'].value_counts().plot(kind='pie', autopct='%1.1f%%', ax=ax)
 st.pyplot(fig)
 
-st.subheader(" Ship Mode Distribution")
-ship_counts = filtered_df['Ship Mode'].value_counts()
-
+# 5
+st.subheader("Ship Mode Count")
 fig, ax = plt.subplots()
-ax.pie(ship_counts, labels=ship_counts.index, autopct='%1.1f%%')
+filtered_df['Ship Mode'].value_counts().plot(kind='bar', ax=ax)
 st.pyplot(fig)
 
-
-# TREND
-st.subheader(" Orders Over Time")
-trend = filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size()
+# 6
+st.subheader("Orders Over Time")
 fig, ax = plt.subplots()
-trend.plot(ax=ax)
+filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().plot(ax=ax)
+st.pyplot(fig)
+
+# 7
+st.subheader(" Lead Time by Ship Mode")
+fig, ax = plt.subplots()
+sns.boxplot(data=filtered_df, x='Ship Mode', y='Lead Time', ax=ax)
+st.pyplot(fig)
+
+# 8
+st.subheader("Lead Time by Region")
+fig, ax = plt.subplots()
+sns.boxplot(data=filtered_df, x='Region', y='Lead Time', ax=ax)
+st.pyplot(fig)
+
+# 9
+st.subheader(" Orders by Region")
+fig, ax = plt.subplots()
+filtered_df['Region'].value_counts().plot(kind='bar', ax=ax)
+st.pyplot(fig)
+
+# 10
+st.subheader(" Avg Lead Time by State")
+fig, ax = plt.subplots()
+filtered_df.groupby('State/Province')['Lead Time'].mean().head(10).plot(kind='bar', ax=ax)
+st.pyplot(fig)
+
+# 11
+st.subheader("Ship Mode vs Delay")
+fig, ax = plt.subplots()
+pd.crosstab(filtered_df['Ship Mode'], filtered_df['Delayed']).plot(kind='bar', ax=ax)
+st.pyplot(fig)
+
+# 12
+st.subheader(" Orders by Customer")
+fig, ax = plt.subplots()
+filtered_df['Customer ID'].value_counts().head(10).plot(kind='bar', ax=ax)
+st.pyplot(fig)
+
+# 13
+st.subheader("Lead Time Trend")
+fig, ax = plt.subplots()
+filtered_df.sort_values('Order Date').groupby('Order Date')['Lead Time'].mean().plot(ax=ax)
+st.pyplot(fig)
+
+# 14
+st.subheader(" Region vs Delay")
+fig, ax = plt.subplots()
+pd.crosstab(filtered_df['Region'], filtered_df['Delayed']).plot(kind='bar', ax=ax)
+st.pyplot(fig)
+
+# 15
+st.subheader("Ship Mode vs Orders")
+fig, ax = plt.subplots()
+filtered_df.groupby('Ship Mode').size().plot(kind='bar', ax=ax)
 st.pyplot(fig)
