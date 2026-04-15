@@ -154,3 +154,34 @@ fig, ax = plt.subplots(figsize=(4,3))
 filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().plot(ax=ax)
 plt.tight_layout()
 st.pyplot(fig, use_container_width=False)
+
+
+#  DATA EXPLORATION PANEL 
+st.markdown("## 📊 Data Exploration Panel")
+show_raw = st.checkbox("Show Raw Data")
+if show_raw:
+    st.dataframe(filtered_df)
+
+# SEARCH
+search_state = st.text_input("Search State")
+if search_state:
+    st.write(
+        filtered_df[
+            filtered_df['State/Province'].str.contains(search_state, case=False)
+        ]
+    )
+
+st.subheader("Best & Worst Routes")
+
+top_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nsmallest(5)
+worst_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nlargest(5)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.write(" Fastest Routes")
+    st.dataframe(top_routes)
+
+with col2:
+    st.write(" Slowest Routes")
+    st.dataframe(worst_routes)
