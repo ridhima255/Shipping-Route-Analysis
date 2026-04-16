@@ -1,146 +1,191 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
+import seaborn as sns
+import matplotlib.pyplot as plt
 import plotly.express as px
 
-# ---------------- PAGE SETUP ----------------
-st.set_page_config(page_title="Shipping Dashboard", layout="wide")
+st.set_page_config(layout="wide")
 
-st.markdown(
-    "<h1 style='text-align: center; color:#4ECDC4;'>🚀 Shipping Analytics Dashboard</h1>",
-    unsafe_allow_html=True
+# =======================
+# 🎨 UI
+# =======================
+st.markdown("""
+<style>
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: white;
+}
+[data-testid="stSidebar"] {
+    background: #020617;
+}
+h1,h2,h3 { color:white; }
+</style>
+""", unsafe_allow_html=True)
+
+# =======================
+# TITLE + STORY
+# =======================
+st.title("📊 Shipping Route Analysis Dashboard")
+
+st.markdown("""
+### 📌 Business Objective  
+Analyze shipping performance, identify delays, and optimize route efficiency across regions.
+""")
+
+# =======================
+# LOAD DATA
+# =======================
+try:
+    df = pd.read_csv('data/data.csv')
+except:
+    df = pd.read_csv('data.csv')
+
+df['Order Date'] = pd.to_datetime(df['Order Date'], dayfirst=True)
+df['Ship Date'] = pd.to_datetime(df['Ship Date'], dayfirst=True)
+df['Lead Time'] = (df['Ship Date'] - df['Order Date']).dt.days
+
+# =======================
+# SIDEBAR
+# =======================
+st.sidebar.markdown("### 🎯 Dashboard Controls")
+
+threshold = st.sidebar.slider("Delay Threshold", 0, 1500, 1000)
+
+df['Delayed'] = df['Lead Time'].apply(lambda x: 'Delayed' if x > threshold else 'On-Time')
+
+state_filter = st.sidebar.multiselect(
+    "State", df['State/Province'].unique(),
+    default=df['State/Province'].unique()
 )
 
-# ---------------- LOAD DATA ----------------
-df = pd.read_csv("data.csv")
+mode_filter = st.sidebar.multiselect(
+    "Ship Mode", df['Ship Mode'].unique(),
+    default=df['Ship Mode'].unique()
+)
 
-# ---------------- DEBUG (shows columns once) ----------------
-st.write("Columns in dataset:", df.columns)
+filtered_df = df[
+    (df['State/Province'].isin(state_filter)) &
+    (df['Ship Mode'].isin(mode_filter))
+]
 
-# ---------------- SAFE COLUMN DETECTION ----------------
-def get_column(possible_names):
-    for col in possible_names:
-        if col in df.columns:
-            return col
-    return None
+# =======================
+# KPI
+# =======================
+col1, col2, col3, col4 = st.columns(4)
 
-lead_col = get_column(['Lead Time', 'Lead_Time', 'LeadTime'])
-state_col = get_column(['State', 'State/Province'])
-date_col = get_column(['Order Date', 'Order_Date'])
+col1.metric("Total Orders", len(filtered_df))
+col2.metric("Avg Lead Time", round(filtered_df['Lead Time'].mean(),2))
+col3.metric("Max Lead Time", filtered_df['Lead Time'].max())
+col4.metric("Delay %", f"{(filtered_df['Delayed']=='Delayed').mean()*100:.1f}%")
 
-# ---------------- STYLE FUNCTION ----------------
-def clean_fig(fig):
-    fig.update_layout(
-        title_x=0.5,
-        title_font=dict(size=18),
-        margin=dict(l=20, r=20, t=50, b=20),
-        height=350,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)'
-    )
-    fig.update_traces(marker=dict(line=dict(width=0)))
-    return fig
+# =======================
+# 🚀 ROUTE EFFICIENCY
+# =======================
+st.subheader("🚀 Route Efficiency by Shipping Mode")
 
-# ---------------- ROW 1 ----------------
+fig, ax = plt.subplots(figsize=(4,3))
+filtered_df.groupby('Ship Mode')['Lead Time'].mean().plot(kind='barh', ax=ax)
+plt.tight_layout()
+st.pyplot(fig, use_container_width=False)
+
+st.caption("👉 Standard Class shows relatively higher delivery time.")
+
+# =======================
+# 🌍 HEATMAP
+# =======================
+st.subheader("🌍 Geographic Shipping Performance")
+
+state_abbrev = {
+'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA',
+'Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD',
+'Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS',
+'Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV',
+'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY',
+'North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT',
+'Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV',
+'Wisconsin':'WI','Wyoming':'WY'
+}
+
+state_map = filtered_df.groupby('State/Province')['Lead Time'].mean().reset_index()
+state_map['code'] = state_map['State/Province'].map(state_abbrev)
+state_map = state_map.dropna()
+
+fig = px.choropleth(
+    state_map,
+    locations='code',
+    locationmode="USA-states",
+    color='Lead Time',
+    scope="usa",
+    color_continuous_scale="RdYlGn_r"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+st.caption("👉 Darker regions indicate slower shipping performance.")
+
+# =======================
+# 📊 DISTRIBUTION
+# =======================
+colA, colB = st.columns(2)
+
+with colA:
+    st.subheader("📊 Lead Time Distribution")
+    fig, ax = plt.subplots(figsize=(4,3))
+    sns.histplot(filtered_df['Lead Time'], bins=20, kde=True, ax=ax)
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=False)
+
+with colB:
+    st.subheader("🥧 Delay Distribution")
+    fig, ax = plt.subplots(figsize=(4,3))
+    filtered_df['Delayed'].value_counts().plot(kind='pie', autopct='%1.1f%%', ax=ax)
+    ax.set_ylabel('')
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=False)
+
+# =======================
+# 📌 TOP / WORST
+# =======================
+st.subheader("📌 Best & Worst Performing States")
+
+top_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nsmallest(5)
+worst_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nlargest(5)
+
 col1, col2 = st.columns(2)
 
 with col1:
-    ship_eff = df['Ship Mode'].value_counts().reset_index()
-    ship_eff.columns = ['Ship Mode', 'Count']
-
-    fig1 = px.bar(
-        ship_eff,
-        x='Count',
-        y='Ship Mode',
-        orientation='h',
-        color='Count',
-        color_continuous_scale='Tealgrn',
-        title="🚚 Ship Mode"
-    )
-    st.plotly_chart(clean_fig(fig1), use_container_width=True)
+    st.write("🔥 Fastest")
+    st.dataframe(top_routes)
 
 with col2:
-    if lead_col:
-        fig2 = px.histogram(
-            df,
-            x=lead_col,
-            nbins=20,
-            color_discrete_sequence=['#4ECDC4'],
-            title="⏳ Lead Time"
-        )
-        st.plotly_chart(clean_fig(fig2), use_container_width=True)
-    else:
-        st.warning("⚠️ Lead Time column not found")
+    st.write("⚠️ Slowest")
+    st.dataframe(worst_routes)
 
-# ---------------- ROW 2 ----------------
-col3, col4 = st.columns(2)
+# =======================
+# 📈 TREND
+# =======================
+st.subheader("📈 Orders Trend Over Time")
 
-with col3:
-    if 'Delayed' in df.columns:
-        delay_counts = df['Delayed'].value_counts().reset_index()
-        delay_counts.columns = ['Status', 'Count']
+fig, ax = plt.subplots(figsize=(4,3))
+filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().plot(ax=ax)
+plt.tight_layout()
+st.pyplot(fig, use_container_width=False)
 
-        fig3 = px.pie(
-            delay_counts,
-            names='Status',
-            values='Count',
-            hole=0.5,
-            color_discrete_sequence=['#FF6B6B', '#4ECDC4'],
-            title="⚠️ Delay"
-        )
-        st.plotly_chart(clean_fig(fig3), use_container_width=True)
-    else:
-        st.warning("⚠️ Delayed column not found")
+st.caption("👉 Orders show fluctuating trend over time.")
 
-with col4:
-    if state_col:
-        state_counts = df[state_col].value_counts().head(10).reset_index()
-        state_counts.columns = ['State', 'Orders']
+# =======================
+# 🔍 DATA PANEL
+# =======================
+st.markdown("## 📊 Data Exploration Panel")
 
-        fig4 = px.bar(
-            state_counts,
-            x='State',
-            y='Orders',
-            color='Orders',
-            color_continuous_scale='Blues',
-            title="🌍 Top States"
-        )
-        fig4.update_layout(xaxis_tickangle=-30)
-        st.plotly_chart(clean_fig(fig4), use_container_width=True)
-    else:
-        st.warning("⚠️ State column not found")
+if st.checkbox("Show Raw Data"):
+    st.dataframe(filtered_df)
 
-# ---------------- ROW 3 ----------------
-col5, col6 = st.columns(2)
+search = st.text_input("🔍 Search State")
 
-with col5:
-    ship_mode_count = df['Ship Mode'].value_counts().reset_index()
-    ship_mode_count.columns = ['Ship Mode', 'Count']
-
-    fig5 = px.bar(
-        ship_mode_count,
-        x='Ship Mode',
-        y='Count',
-        color='Ship Mode',
-        title="📦 Ship Mode Count"
-    )
-    st.plotly_chart(clean_fig(fig5), use_container_width=True)
-
-with col6:
-    if date_col:
-        df[date_col] = pd.to_datetime(df[date_col])
-
-        orders_time = df.groupby(df[date_col].dt.to_period("M")).size().reset_index()
-        orders_time.columns = ['Month', 'Orders']
-        orders_time['Month'] = orders_time['Month'].astype(str)
-
-        fig6 = px.line(
-            orders_time,
-            x='Month',
-            y='Orders',
-            markers=True,
-            title="📈 Orders Trend"
-        )
-        fig6.update_traces(line=dict(width=3, color='#4ECDC4'))
-        st.plotly_chart(clean_fig(fig6), use_container_width=True)
-    else:
-        st.warning("⚠️ Order Date column not found")
+if search:
+    st.write(filtered_df[filtered_df['State/Province'].str.contains(search, case=False)])
