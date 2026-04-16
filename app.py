@@ -47,8 +47,15 @@ threshold = st.sidebar.slider("Delay Threshold", 0, 1500, 1000)
 
 df['Delayed'] = df['Lead Time'].apply(lambda x: 'Delayed' if x > threshold else 'On-Time')
 
-state_filter = st.sidebar.multiselect("State", df['State/Province'].unique(), default=df['State/Province'].unique())
-mode_filter = st.sidebar.multiselect("Ship Mode", df['Ship Mode'].unique(), default=df['Ship Mode'].unique())
+state_filter = st.sidebar.multiselect(
+    "State", df['State/Province'].unique(),
+    default=df['State/Province'].unique()
+)
+
+mode_filter = st.sidebar.multiselect(
+    "Ship Mode", df['Ship Mode'].unique(),
+    default=df['Ship Mode'].unique()
+)
 
 filtered_df = df[
     (df['State/Province'].isin(state_filter)) &
@@ -66,7 +73,7 @@ col3.metric("Max Lead Time", filtered_df['Lead Time'].max() if not filtered_df.e
 col4.metric("Delay %", f"{(filtered_df['Delayed']=='Delayed').mean()*100:.1f}%" if not filtered_df.empty else "0%")
 
 # =======================
-# 📊 SECTION 1
+# SECTION 1
 # =======================
 st.subheader("🚀 Shipping Mode Performance")
 
@@ -76,22 +83,34 @@ with colA:
     if not filtered_df.empty:
         fig, ax = plt.subplots(figsize=(4,3))
         filtered_df.groupby('Ship Mode')['Lead Time'].mean().plot(kind='barh', ax=ax)
+        plt.tight_layout()
         st.pyplot(fig, use_container_width=False)
 
 with colB:
     if not filtered_df.empty:
         fig, ax = plt.subplots(figsize=(4,3))
         filtered_df['Ship Mode'].value_counts().plot(kind='bar', ax=ax)
+        plt.tight_layout()
         st.pyplot(fig, use_container_width=False)
 
 # =======================
-# 🌍 HEATMAP
+# HEATMAP
 # =======================
 st.subheader("🌍 Geographic Performance")
 
 state_abbrev = {
-'Alabama':'AL','California':'CA','Texas':'TX','New York':'NY','Florida':'FL',
-'Washington':'WA','Illinois':'IL','Pennsylvania':'PA','Ohio':'OH','Georgia':'GA'
+'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA',
+'Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD',
+'Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS',
+'Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV',
+'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY',
+'North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT',
+'Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV',
+'Wisconsin':'WI','Wyoming':'WY'
 }
 
 if not filtered_df.empty:
@@ -104,12 +123,13 @@ if not filtered_df.empty:
         locations='code',
         locationmode="USA-states",
         color='Lead Time',
-        scope="usa"
+        scope="usa",
+        color_continuous_scale="RdYlGn_r"
     )
     st.plotly_chart(fig, use_container_width=True)
 
 # =======================
-# 📊 SECTION 2
+# SECTION 2
 # =======================
 colC, colD = st.columns(2)
 
@@ -118,6 +138,7 @@ with colC:
     if not filtered_df.empty:
         fig, ax = plt.subplots(figsize=(4,3))
         sns.histplot(filtered_df['Lead Time'], bins=20, kde=True, ax=ax)
+        plt.tight_layout()
         st.pyplot(fig, use_container_width=False)
 
 with colD:
@@ -126,10 +147,11 @@ with colD:
         fig, ax = plt.subplots(figsize=(4,3))
         filtered_df['Delayed'].value_counts().plot(kind='pie', autopct='%1.1f%%', ax=ax)
         ax.set_ylabel('')
+        plt.tight_layout()
         st.pyplot(fig, use_container_width=False)
 
 # =======================
-# 📊 SECTION 3
+# SECTION 3
 # =======================
 colE, colF = st.columns(2)
 
@@ -138,6 +160,8 @@ with colE:
     if not filtered_df.empty:
         fig, ax = plt.subplots(figsize=(4,3))
         filtered_df['State/Province'].value_counts().head(10).plot(kind='bar', ax=ax)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
         st.pyplot(fig, use_container_width=False)
 
 with colF:
@@ -145,39 +169,40 @@ with colF:
     if not filtered_df.empty:
         fig, ax = plt.subplots(figsize=(4,3))
         filtered_df.groupby('Region')['Lead Time'].mean().plot(kind='bar', ax=ax)
+        plt.tight_layout()
         st.pyplot(fig, use_container_width=False)
 
 # =======================
-# 📊 SECTION 4
+# TREND FIXED
 # =======================
 st.subheader("📈 Trend Analysis")
 
 if not filtered_df.empty:
     fig, ax = plt.subplots(figsize=(5,3))
 
-trend = filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size()
+    trend = filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size()
+    trend.index = trend.index.to_timestamp()
 
-ax.plot(trend.index.astype(str), trend.values, marker='o', linewidth=2)
+    ax.plot(trend.index, trend.values, marker='o', linewidth=2)
 
-# 🎨 DARK STYLE
-ax.set_facecolor('#0f172a')
-fig.patch.set_facecolor('#0f172a')
+    ax.set_facecolor('#0f172a')
+    fig.patch.set_facecolor('#0f172a')
 
-ax.tick_params(colors='white')
-ax.spines[:].set_color('white')
+    ax.tick_params(colors='white')
+    ax.spines[:].set_color('white')
 
-ax.set_title("Orders Trend", color='white')
-ax.set_xlabel("Month", color='white')
-ax.set_ylabel("Orders", color='white')
+    ax.set_xlabel("Month", color='white')
+    ax.set_ylabel("Orders", color='white')
 
-plt.xticks(rotation=45)
+    ax.xaxis.set_major_locator(plt.MaxNLocator(6))
+    plt.xticks(rotation=30)
 
-st.pyplot(fig, use_container_width=False)
+    st.pyplot(fig, use_container_width=False)
 
 # =======================
-# 📊 SECTION 5
+# BEST / WORST
 # =======================
-st.subheader("📌 Best vs Worst Routes")
+st.subheader("📌 Best vs Worst")
 
 if not filtered_df.empty:
     best = filtered_df.groupby('State/Province')['Lead Time'].mean().nsmallest(5)
@@ -194,20 +219,20 @@ if not filtered_df.empty:
         st.dataframe(worst)
 
 # =======================
-# 📊 SECTION 6 (INSIGHTS)
+# INSIGHTS
 # =======================
-st.subheader("🧠 Key Insights")
+st.subheader("🧠 Insights")
 
 if not filtered_df.empty:
     if filtered_df['Lead Time'].mean() > 1200:
-        st.error("🚨 High delivery time detected")
+        st.error("🚨 High delivery time")
     else:
-        st.success("✅ Performance is stable")
+        st.success("✅ Performance stable")
 
 # =======================
-# 📊 DATA PANEL
+# DATA PANEL
 # =======================
-st.subheader("📊 Data Exploration")
+st.subheader("📊 Data Panel")
 
 if st.checkbox("Show Raw Data"):
     st.dataframe(filtered_df)
