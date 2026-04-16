@@ -1,13 +1,11 @@
 import pandas as pd
 import streamlit as st
-import seaborn as sns
-import matplotlib.pyplot as plt
 import plotly.express as px
 
 st.set_page_config(layout="wide")
 
 # =======================
-# 🎨 UI
+# 🎨 CLEAN UI
 # =======================
 st.markdown("""
 <style>
@@ -15,16 +13,13 @@ st.markdown("""
     background: linear-gradient(135deg, #0f172a, #1e293b);
     color: white;
 }
-[data-testid="stSidebar"] {
-    background: #020617;
-}
 h1,h2,h3 { color:white; }
 </style>
 """, unsafe_allow_html=True)
 
 st.title("📊 Shipping Route Analysis Dashboard")
 
-st.markdown("### 📌 Analyze delays, efficiency & logistics performance")
+st.markdown("### 📌 Identify delays, optimize routes, and improve logistics performance")
 
 # =======================
 # LOAD DATA
@@ -47,15 +42,8 @@ threshold = st.sidebar.slider("Delay Threshold", 0, 1500, 1000)
 
 df['Delayed'] = df['Lead Time'].apply(lambda x: 'Delayed' if x > threshold else 'On-Time')
 
-state_filter = st.sidebar.multiselect(
-    "State", df['State/Province'].unique(),
-    default=df['State/Province'].unique()
-)
-
-mode_filter = st.sidebar.multiselect(
-    "Ship Mode", df['Ship Mode'].unique(),
-    default=df['Ship Mode'].unique()
-)
+state_filter = st.sidebar.multiselect("State", df['State/Province'].unique(), default=df['State/Province'].unique())
+mode_filter = st.sidebar.multiselect("Ship Mode", df['Ship Mode'].unique(), default=df['Ship Mode'].unique())
 
 filtered_df = df[
     (df['State/Province'].isin(state_filter)) &
@@ -72,29 +60,51 @@ col2.metric("Avg Lead Time", round(filtered_df['Lead Time'].mean(),2) if not fil
 col3.metric("Max Lead Time", filtered_df['Lead Time'].max() if not filtered_df.empty else 0)
 col4.metric("Delay %", f"{(filtered_df['Delayed']=='Delayed').mean()*100:.1f}%" if not filtered_df.empty else "0%")
 
-# =======================
-# SECTION 1
-# =======================
-st.subheader("🚀 Shipping Mode Performance")
+st.markdown("---")
 
+# =======================
+# 📈 HERO GRAPH (TREND)
+# =======================
+st.subheader("📈 Orders Trend Over Time")
+
+if not filtered_df.empty:
+    trend = filtered_df.groupby(
+        filtered_df['Order Date'].dt.to_period('M')
+    ).size().reset_index(name='Orders')
+
+    trend['Order Date'] = trend['Order Date'].astype(str)
+
+    fig = px.line(trend, x='Order Date', y='Orders', markers=True)
+    st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("---")
+
+# =======================
+# 📊 2 MAIN GRAPHS
+# =======================
 colA, colB = st.columns(2)
 
 with colA:
+    st.subheader("🚀 Shipping Mode Performance")
+
     if not filtered_df.empty:
-        fig, ax = plt.subplots(figsize=(4,3))
-        filtered_df.groupby('Ship Mode')['Lead Time'].mean().plot(kind='barh', ax=ax)
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=False)
+        ship = filtered_df.groupby('Ship Mode')['Lead Time'].mean().reset_index()
+        fig = px.bar(ship, x='Ship Mode', y='Lead Time')
+        st.plotly_chart(fig, use_container_width=True)
 
 with colB:
+    st.subheader("🥧 Delay Distribution")
+
     if not filtered_df.empty:
-        fig, ax = plt.subplots(figsize=(4,3))
-        filtered_df['Ship Mode'].value_counts().plot(kind='bar', ax=ax)
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=False)
+        delay = filtered_df['Delayed'].value_counts().reset_index()
+        delay.columns = ['Status', 'Count']
+        fig = px.pie(delay, names='Status', values='Count')
+        st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("---")
 
 # =======================
-# HEATMAP
+# 🌍 MAP
 # =======================
 st.subheader("🌍 Geographic Performance")
 
@@ -126,83 +136,15 @@ if not filtered_df.empty:
         scope="usa",
         color_continuous_scale="RdYlGn_r"
     )
+
     st.plotly_chart(fig, use_container_width=True)
 
-# =======================
-# SECTION 2
-# =======================
-colC, colD = st.columns(2)
-
-with colC:
-    st.subheader("📊 Lead Time Distribution")
-    if not filtered_df.empty:
-        fig, ax = plt.subplots(figsize=(4,3))
-        sns.histplot(filtered_df['Lead Time'], bins=20, kde=True, ax=ax)
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=False)
-
-with colD:
-    st.subheader("🥧 Delay Distribution")
-    if not filtered_df.empty:
-        fig, ax = plt.subplots(figsize=(4,3))
-        filtered_df['Delayed'].value_counts().plot(kind='pie', autopct='%1.1f%%', ax=ax)
-        ax.set_ylabel('')
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=False)
+st.markdown("---")
 
 # =======================
-# SECTION 3
+# 📌 TABLE
 # =======================
-colE, colF = st.columns(2)
-
-with colE:
-    st.subheader("📍 Orders by State")
-    if not filtered_df.empty:
-        fig, ax = plt.subplots(figsize=(4,3))
-        filtered_df['State/Province'].value_counts().head(10).plot(kind='bar', ax=ax)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=False)
-
-with colF:
-    st.subheader("🌍 Region Performance")
-    if not filtered_df.empty:
-        fig, ax = plt.subplots(figsize=(4,3))
-        filtered_df.groupby('Region')['Lead Time'].mean().plot(kind='bar', ax=ax)
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=False)
-
-# =======================
-# TREND FIXED
-# =======================
-st.subheader("📈 Trend Analysis")
-
-if not filtered_df.empty:
-    fig, ax = plt.subplots(figsize=(5,3))
-
-    trend = filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size()
-    trend.index = trend.index.to_timestamp()
-
-    ax.plot(trend.index, trend.values, marker='o', linewidth=2)
-
-    ax.set_facecolor('#0f172a')
-    fig.patch.set_facecolor('#0f172a')
-
-    ax.tick_params(colors='white')
-    ax.spines[:].set_color('white')
-
-    ax.set_xlabel("Month", color='white')
-    ax.set_ylabel("Orders", color='white')
-
-    ax.xaxis.set_major_locator(plt.MaxNLocator(6))
-    plt.xticks(rotation=30)
-
-    st.pyplot(fig, use_container_width=False)
-
-# =======================
-# BEST / WORST
-# =======================
-st.subheader("📌 Best vs Worst")
+st.subheader("📌 Best & Worst Routes")
 
 if not filtered_df.empty:
     best = filtered_df.groupby('State/Province')['Lead Time'].mean().nsmallest(5)
@@ -217,27 +159,3 @@ if not filtered_df.empty:
     with col2:
         st.write("⚠️ Slowest")
         st.dataframe(worst)
-
-# =======================
-# INSIGHTS
-# =======================
-st.subheader("🧠 Insights")
-
-if not filtered_df.empty:
-    if filtered_df['Lead Time'].mean() > 1200:
-        st.error("🚨 High delivery time")
-    else:
-        st.success("✅ Performance stable")
-
-# =======================
-# DATA PANEL
-# =======================
-st.subheader("📊 Data Panel")
-
-if st.checkbox("Show Raw Data"):
-    st.dataframe(filtered_df)
-
-search = st.text_input("🔍 Search State")
-
-if search:
-    st.write(filtered_df[filtered_df['State/Province'].str.contains(search, case=False)])
