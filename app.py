@@ -22,15 +22,9 @@ h1,h2,h3 { color:white; }
 </style>
 """, unsafe_allow_html=True)
 
-# =======================
-# TITLE + STORY
-# =======================
 st.title("📊 Shipping Route Analysis Dashboard")
 
-st.markdown("""
-### 📌 Business Objective  
-Analyze shipping performance, identify delays, and optimize route efficiency across regions.
-""")
+st.markdown("### 📌 Analyze delays, efficiency & logistics performance")
 
 # =======================
 # LOAD DATA
@@ -47,21 +41,14 @@ df['Lead Time'] = (df['Ship Date'] - df['Order Date']).dt.days
 # =======================
 # SIDEBAR
 # =======================
-st.sidebar.markdown("### 🎯 Dashboard Controls")
+st.sidebar.header("🎯 Filters")
 
 threshold = st.sidebar.slider("Delay Threshold", 0, 1500, 1000)
 
 df['Delayed'] = df['Lead Time'].apply(lambda x: 'Delayed' if x > threshold else 'On-Time')
 
-state_filter = st.sidebar.multiselect(
-    "State", df['State/Province'].unique(),
-    default=df['State/Province'].unique()
-)
-
-mode_filter = st.sidebar.multiselect(
-    "Ship Mode", df['Ship Mode'].unique(),
-    default=df['Ship Mode'].unique()
-)
+state_filter = st.sidebar.multiselect("State", df['State/Province'].unique(), default=df['State/Province'].unique())
+mode_filter = st.sidebar.multiselect("Ship Mode", df['Ship Mode'].unique(), default=df['Ship Mode'].unique())
 
 filtered_df = df[
     (df['State/Province'].isin(state_filter)) &
@@ -73,42 +60,38 @@ filtered_df = df[
 # =======================
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric("Total Orders", len(filtered_df))
+col1.metric("Orders", len(filtered_df))
 col2.metric("Avg Lead Time", round(filtered_df['Lead Time'].mean(),2) if not filtered_df.empty else 0)
 col3.metric("Max Lead Time", filtered_df['Lead Time'].max() if not filtered_df.empty else 0)
 col4.metric("Delay %", f"{(filtered_df['Delayed']=='Delayed').mean()*100:.1f}%" if not filtered_df.empty else "0%")
 
 # =======================
-# ROUTE EFFICIENCY
+# 📊 SECTION 1
 # =======================
-st.subheader("🚀 Route Efficiency by Shipping Mode")
+st.subheader("🚀 Shipping Mode Performance")
 
-if not filtered_df.empty:
-    fig, ax = plt.subplots(figsize=(4,3))
-    filtered_df.groupby('Ship Mode')['Lead Time'].mean().plot(kind='barh', ax=ax)
-    plt.tight_layout()
-    st.pyplot(fig, use_container_width=False)
-else:
-    st.warning("No data available")
+colA, colB = st.columns(2)
+
+with colA:
+    if not filtered_df.empty:
+        fig, ax = plt.subplots(figsize=(4,3))
+        filtered_df.groupby('Ship Mode')['Lead Time'].mean().plot(kind='barh', ax=ax)
+        st.pyplot(fig, use_container_width=False)
+
+with colB:
+    if not filtered_df.empty:
+        fig, ax = plt.subplots(figsize=(4,3))
+        filtered_df['Ship Mode'].value_counts().plot(kind='bar', ax=ax)
+        st.pyplot(fig, use_container_width=False)
 
 # =======================
-# HEATMAP
+# 🌍 HEATMAP
 # =======================
-st.subheader("🌍 Geographic Shipping Performance")
+st.subheader("🌍 Geographic Performance")
 
 state_abbrev = {
-'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
-'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
-'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA',
-'Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD',
-'Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS',
-'Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV',
-'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY',
-'North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
-'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
-'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT',
-'Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV',
-'Wisconsin':'WI','Wyoming':'WY'
+'Alabama':'AL','California':'CA','Texas':'TX','New York':'NY','Florida':'FL',
+'Washington':'WA','Illinois':'IL','Pennsylvania':'PA','Ohio':'OH','Georgia':'GA'
 }
 
 if not filtered_df.empty:
@@ -121,69 +104,93 @@ if not filtered_df.empty:
         locations='code',
         locationmode="USA-states",
         color='Lead Time',
-        scope="usa",
-        color_continuous_scale="RdYlGn_r"
+        scope="usa"
     )
     st.plotly_chart(fig, use_container_width=True)
-else:
-    st.warning("No data for map")
 
 # =======================
-# DISTRIBUTION
+# 📊 SECTION 2
 # =======================
-colA, colB = st.columns(2)
+colC, colD = st.columns(2)
 
-with colA:
+with colC:
     st.subheader("📊 Lead Time Distribution")
     if not filtered_df.empty:
         fig, ax = plt.subplots(figsize=(4,3))
         sns.histplot(filtered_df['Lead Time'], bins=20, kde=True, ax=ax)
-        plt.tight_layout()
         st.pyplot(fig, use_container_width=False)
 
-with colB:
+with colD:
     st.subheader("🥧 Delay Distribution")
     if not filtered_df.empty:
         fig, ax = plt.subplots(figsize=(4,3))
         filtered_df['Delayed'].value_counts().plot(kind='pie', autopct='%1.1f%%', ax=ax)
         ax.set_ylabel('')
-        plt.tight_layout()
         st.pyplot(fig, use_container_width=False)
 
 # =======================
-# TOP/WORST
+# 📊 SECTION 3
 # =======================
-st.subheader("📌 Best & Worst Performing States")
+colE, colF = st.columns(2)
+
+with colE:
+    st.subheader("📍 Orders by State")
+    if not filtered_df.empty:
+        fig, ax = plt.subplots(figsize=(4,3))
+        filtered_df['State/Province'].value_counts().head(10).plot(kind='bar', ax=ax)
+        st.pyplot(fig, use_container_width=False)
+
+with colF:
+    st.subheader("🌍 Region Performance")
+    if not filtered_df.empty:
+        fig, ax = plt.subplots(figsize=(4,3))
+        filtered_df.groupby('Region')['Lead Time'].mean().plot(kind='bar', ax=ax)
+        st.pyplot(fig, use_container_width=False)
+
+# =======================
+# 📊 SECTION 4
+# =======================
+st.subheader("📈 Trend Analysis")
 
 if not filtered_df.empty:
-    top_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nsmallest(5)
-    worst_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nlargest(5)
+    fig, ax = plt.subplots(figsize=(5,3))
+    filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().plot(ax=ax)
+    st.pyplot(fig, use_container_width=False)
+
+# =======================
+# 📊 SECTION 5
+# =======================
+st.subheader("📌 Best vs Worst Routes")
+
+if not filtered_df.empty:
+    best = filtered_df.groupby('State/Province')['Lead Time'].mean().nsmallest(5)
+    worst = filtered_df.groupby('State/Province')['Lead Time'].mean().nlargest(5)
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.write("🔥 Fastest")
-        st.dataframe(top_routes)
+        st.dataframe(best)
 
     with col2:
         st.write("⚠️ Slowest")
-        st.dataframe(worst_routes)
+        st.dataframe(worst)
 
 # =======================
-# TREND
+# 📊 SECTION 6 (INSIGHTS)
 # =======================
-st.subheader("📈 Orders Trend Over Time")
+st.subheader("🧠 Key Insights")
 
 if not filtered_df.empty:
-    fig, ax = plt.subplots(figsize=(4,3))
-    filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().plot(ax=ax)
-    plt.tight_layout()
-    st.pyplot(fig, use_container_width=False)
+    if filtered_df['Lead Time'].mean() > 1200:
+        st.error("🚨 High delivery time detected")
+    else:
+        st.success("✅ Performance is stable")
 
 # =======================
-# DATA PANEL
+# 📊 DATA PANEL
 # =======================
-st.markdown("## 📊 Data Exploration Panel")
+st.subheader("📊 Data Exploration")
 
 if st.checkbox("Show Raw Data"):
     st.dataframe(filtered_df)
