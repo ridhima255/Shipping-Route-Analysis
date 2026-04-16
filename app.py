@@ -74,24 +74,25 @@ filtered_df = df[
 col1, col2, col3, col4 = st.columns(4)
 
 col1.metric("Total Orders", len(filtered_df))
-col2.metric("Avg Lead Time", round(filtered_df['Lead Time'].mean(),2))
-col3.metric("Max Lead Time", filtered_df['Lead Time'].max())
-col4.metric("Delay %", f"{(filtered_df['Delayed']=='Delayed').mean()*100:.1f}%")
+col2.metric("Avg Lead Time", round(filtered_df['Lead Time'].mean(),2) if not filtered_df.empty else 0)
+col3.metric("Max Lead Time", filtered_df['Lead Time'].max() if not filtered_df.empty else 0)
+col4.metric("Delay %", f"{(filtered_df['Delayed']=='Delayed').mean()*100:.1f}%" if not filtered_df.empty else "0%")
 
 # =======================
-# 🚀 ROUTE EFFICIENCY
+# ROUTE EFFICIENCY
 # =======================
 st.subheader("🚀 Route Efficiency by Shipping Mode")
 
-fig, ax = plt.subplots(figsize=(4,3))
-filtered_df.groupby('Ship Mode')['Lead Time'].mean().plot(kind='barh', ax=ax)
-plt.tight_layout()
-st.pyplot(fig, use_container_width=False)
-
-st.caption("👉 Standard Class shows relatively higher delivery time.")
+if not filtered_df.empty:
+    fig, ax = plt.subplots(figsize=(4,3))
+    filtered_df.groupby('Ship Mode')['Lead Time'].mean().plot(kind='barh', ax=ax)
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=False)
+else:
+    st.warning("No data available")
 
 # =======================
-# 🌍 HEATMAP
+# HEATMAP
 # =======================
 st.subheader("🌍 Geographic Shipping Performance")
 
@@ -110,75 +111,77 @@ state_abbrev = {
 'Wisconsin':'WI','Wyoming':'WY'
 }
 
-state_map = filtered_df.groupby('State/Province')['Lead Time'].mean().reset_index()
-state_map['code'] = state_map['State/Province'].map(state_abbrev)
-state_map = state_map.dropna()
+if not filtered_df.empty:
+    state_map = filtered_df.groupby('State/Province')['Lead Time'].mean().reset_index()
+    state_map['code'] = state_map['State/Province'].map(state_abbrev)
+    state_map = state_map.dropna()
 
-fig = px.choropleth(
-    state_map,
-    locations='code',
-    locationmode="USA-states",
-    color='Lead Time',
-    scope="usa",
-    color_continuous_scale="RdYlGn_r"
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-st.caption("👉 Darker regions indicate slower shipping performance.")
+    fig = px.choropleth(
+        state_map,
+        locations='code',
+        locationmode="USA-states",
+        color='Lead Time',
+        scope="usa",
+        color_continuous_scale="RdYlGn_r"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.warning("No data for map")
 
 # =======================
-# 📊 DISTRIBUTION
+# DISTRIBUTION
 # =======================
 colA, colB = st.columns(2)
 
 with colA:
     st.subheader("📊 Lead Time Distribution")
-    fig, ax = plt.subplots(figsize=(4,3))
-    sns.histplot(filtered_df['Lead Time'], bins=20, kde=True, ax=ax)
-    plt.tight_layout()
-    st.pyplot(fig, use_container_width=False)
+    if not filtered_df.empty:
+        fig, ax = plt.subplots(figsize=(4,3))
+        sns.histplot(filtered_df['Lead Time'], bins=20, kde=True, ax=ax)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=False)
 
 with colB:
     st.subheader("🥧 Delay Distribution")
+    if not filtered_df.empty:
+        fig, ax = plt.subplots(figsize=(4,3))
+        filtered_df['Delayed'].value_counts().plot(kind='pie', autopct='%1.1f%%', ax=ax)
+        ax.set_ylabel('')
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=False)
+
+# =======================
+# TOP/WORST
+# =======================
+st.subheader("📌 Best & Worst Performing States")
+
+if not filtered_df.empty:
+    top_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nsmallest(5)
+    worst_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nlargest(5)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write("🔥 Fastest")
+        st.dataframe(top_routes)
+
+    with col2:
+        st.write("⚠️ Slowest")
+        st.dataframe(worst_routes)
+
+# =======================
+# TREND
+# =======================
+st.subheader("📈 Orders Trend Over Time")
+
+if not filtered_df.empty:
     fig, ax = plt.subplots(figsize=(4,3))
-    filtered_df['Delayed'].value_counts().plot(kind='pie', autopct='%1.1f%%', ax=ax)
-    ax.set_ylabel('')
+    filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().plot(ax=ax)
     plt.tight_layout()
     st.pyplot(fig, use_container_width=False)
 
 # =======================
-# 📌 TOP / WORST
-# =======================
-st.subheader("📌 Best & Worst Performing States")
-
-top_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nsmallest(5)
-worst_routes = filtered_df.groupby('State/Province')['Lead Time'].mean().nlargest(5)
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.write("🔥 Fastest")
-    st.dataframe(top_routes)
-
-with col2:
-    st.write("⚠️ Slowest")
-    st.dataframe(worst_routes)
-
-# =======================
-# 📈 TREND
-# =======================
-st.subheader("📈 Orders Trend Over Time")
-
-fig, ax = plt.subplots(figsize=(4,3))
-filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().plot(ax=ax)
-plt.tight_layout()
-st.pyplot(fig, use_container_width=False)
-
-st.caption("👉 Orders show fluctuating trend over time.")
-
-# =======================
-# 🔍 DATA PANEL
+# DATA PANEL
 # =======================
 st.markdown("## 📊 Data Exploration Panel")
 
