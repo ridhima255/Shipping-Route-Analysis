@@ -154,8 +154,25 @@ st.subheader("📈 Trend Analysis")
 
 if not filtered_df.empty:
     fig, ax = plt.subplots(figsize=(5,3))
-    filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().plot(ax=ax)
-    st.pyplot(fig, use_container_width=False)
+
+trend = filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size()
+
+ax.plot(trend.index.astype(str), trend.values, marker='o', linewidth=2)
+
+# 🎨 DARK STYLE
+ax.set_facecolor('#0f172a')
+fig.patch.set_facecolor('#0f172a')
+
+ax.tick_params(colors='white')
+ax.spines[:].set_color('white')
+
+ax.set_title("Orders Trend", color='white')
+ax.set_xlabel("Month", color='white')
+ax.set_ylabel("Orders", color='white')
+
+plt.xticks(rotation=45)
+
+st.pyplot(fig, use_container_width=False)
 
 # =======================
 # 📊 SECTION 5
