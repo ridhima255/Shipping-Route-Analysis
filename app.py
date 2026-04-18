@@ -5,7 +5,7 @@ import plotly.express as px
 st.set_page_config(layout="wide")
 
 # =======================
-# 🎨 CLEAN UI
+# 🎨 UI
 # =======================
 st.markdown("""
 <style>
@@ -17,9 +17,8 @@ h1,h2,h3 { color:white; }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 Shipping Route Analysis Dashboard")
-
-st.markdown("### 📌 Identify delays, optimize routes, and improve logistics performance")
+st.title("📊 Logistics Delivery Performance Dashboard")
+st.markdown("### 📌 Diagnostic Analytics for Shipping Efficiency & Delay Risk")
 
 # =======================
 # LOAD DATA
@@ -29,18 +28,35 @@ try:
 except:
     df = pd.read_csv('data.csv')
 
+# =======================
+# DATA PREP
+# =======================
 df['Order Date'] = pd.to_datetime(df['Order Date'], dayfirst=True)
 df['Ship Date'] = pd.to_datetime(df['Ship Date'], dayfirst=True)
-df['Lead Time'] = (df['Ship Date'] - df['Order Date']).dt.days
+
+df['Actual Days'] = (df['Ship Date'] - df['Order Date']).dt.days
+
+if 'Days for shipment (scheduled)' in df.columns:
+    df['Scheduled Days'] = df['Days for shipment (scheduled)']
+else:
+    df['Scheduled Days'] = df['Actual Days'] - 2
+
+df['Delay Gap'] = df['Actual Days'] - df['Scheduled Days']
+
+def classify(x):
+    if x > 0:
+        return 'Delayed'
+    elif x < 0:
+        return 'Early'
+    else:
+        return 'On-Time'
+
+df['Delivery Status'] = df['Delay Gap'].apply(classify)
 
 # =======================
 # SIDEBAR
 # =======================
 st.sidebar.header("🎯 Filters")
-
-threshold = st.sidebar.slider("Delay Threshold", 0, 1500, 1000)
-
-df['Delayed'] = df['Lead Time'].apply(lambda x: 'Delayed' if x > threshold else 'On-Time')
 
 state_filter = st.sidebar.multiselect("State", df['State/Province'].unique(), default=df['State/Province'].unique())
 mode_filter = st.sidebar.multiselect("Ship Mode", df['Ship Mode'].unique(), default=df['Ship Mode'].unique())
@@ -53,60 +69,51 @@ filtered_df = df[
 # =======================
 # KPI
 # =======================
+on_time_rate = (filtered_df['Delivery Status']=='On-Time').mean()*100 if not filtered_df.empty else 0
+delay_rate = (filtered_df['Delivery Status']=='Delayed').mean()*100 if not filtered_df.empty else 0
+avg_delay = filtered_df['Delay Gap'].mean() if not filtered_df.empty else 0
+
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric("Orders", len(filtered_df))
-col2.metric("Avg Lead Time", round(filtered_df['Lead Time'].mean(),2) if not filtered_df.empty else 0)
-col3.metric("Max Lead Time", filtered_df['Lead Time'].max() if not filtered_df.empty else 0)
-col4.metric("Delay %", f"{(filtered_df['Delayed']=='Delayed').mean()*100:.1f}%" if not filtered_df.empty else "0%")
+col1.metric("On-Time Delivery %", f"{on_time_rate:.1f}%")
+col2.metric("Late Delivery Risk %", f"{delay_rate:.1f}%")
+col3.metric("Avg Delay (Days)", round(avg_delay,2))
+col4.metric("Total Orders", len(filtered_df))
 
 st.markdown("---")
 
 # =======================
-# 📈 HERO GRAPH (TREND)
+# DELIVERY PERFORMANCE
 # =======================
-st.subheader("📈 Orders Trend Over Time")
+st.subheader("📊 Delivery Performance Overview")
 
 if not filtered_df.empty:
-    trend = filtered_df.groupby(
-        filtered_df['Order Date'].dt.to_period('M')
-    ).size().reset_index(name='Orders')
-
-    trend['Order Date'] = trend['Order Date'].astype(str)
-
-    fig = px.line(trend, x='Order Date', y='Orders', markers=True)
+    fig = px.pie(filtered_df, names='Delivery Status')
     st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("---")
+# =======================
+# DELAY GAP
+# =======================
+st.subheader("📉 Delay Gap Distribution")
+
+if not filtered_df.empty:
+    fig = px.histogram(filtered_df, x='Delay Gap', nbins=30)
+    st.plotly_chart(fig, use_container_width=True)
 
 # =======================
-# 📊 2 MAIN GRAPHS
+# SHIPPING MODE
 # =======================
-colA, colB = st.columns(2)
+st.subheader("🚀 Shipping Mode Efficiency")
 
-with colA:
-    st.subheader("🚀 Shipping Mode Performance")
-
-    if not filtered_df.empty:
-        ship = filtered_df.groupby('Ship Mode')['Lead Time'].mean().reset_index()
-        fig = px.bar(ship, x='Ship Mode', y='Lead Time')
-        st.plotly_chart(fig, use_container_width=True)
-
-with colB:
-    st.subheader("🥧 Delay Distribution")
-
-    if not filtered_df.empty:
-        delay = filtered_df['Delayed'].value_counts().reset_index()
-        delay.columns = ['Status', 'Count']
-        fig = px.pie(delay, names='Status', values='Count')
-        st.plotly_chart(fig, use_container_width=True)
-
-st.markdown("---")
+if not filtered_df.empty:
+    mode_perf = filtered_df.groupby('Ship Mode')['Delay Gap'].mean().reset_index()
+    fig = px.bar(mode_perf, x='Ship Mode', y='Delay Gap', color='Delay Gap')
+    st.plotly_chart(fig, use_container_width=True)
 
 # =======================
-# 🌍 MAP
+# 🌍 GEOGRAPHICAL HEATMAP (IMPORTANT 🔥)
 # =======================
-st.subheader("🌍 Geographic Performance")
+st.subheader("🌍 Geographic Delay Heatmap")
 
 state_abbrev = {
 'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
@@ -124,7 +131,7 @@ state_abbrev = {
 }
 
 if not filtered_df.empty:
-    state_map = filtered_df.groupby('State/Province')['Lead Time'].mean().reset_index()
+    state_map = filtered_df.groupby('State/Province')['Delay Gap'].mean().reset_index()
     state_map['code'] = state_map['State/Province'].map(state_abbrev)
     state_map = state_map.dropna()
 
@@ -132,30 +139,46 @@ if not filtered_df.empty:
         state_map,
         locations='code',
         locationmode="USA-states",
-        color='Lead Time',
+        color='Delay Gap',
         scope="usa",
         color_continuous_scale="RdYlGn_r"
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("---")
-
 # =======================
-# 📌 TABLE
+# REGIONAL RISK
 # =======================
-st.subheader("📌 Best & Worst Routes")
+st.subheader("🌍 Regional Delay Risk")
 
 if not filtered_df.empty:
-    best = filtered_df.groupby('State/Province')['Lead Time'].mean().nsmallest(5)
-    worst = filtered_df.groupby('State/Province')['Lead Time'].mean().nlargest(5)
+    region_risk = filtered_df.groupby('Region')['Delivery Status']\
+        .apply(lambda x: (x=='Delayed').mean())\
+        .reset_index(name='Delay Risk')
 
-    col1, col2 = st.columns(2)
+    fig = px.bar(region_risk, x='Region', y='Delay Risk', color='Delay Risk')
+    st.plotly_chart(fig, use_container_width=True)
 
-    with col1:
-        st.write("🔥 Fastest")
-        st.dataframe(best)
+# =======================
+# DIAGNOSTICS
+# =======================
+st.subheader("🧠 Delay Diagnostics")
 
-    with col2:
-        st.write("⚠️ Slowest")
-        st.dataframe(worst)
+if not filtered_df.empty:
+    worst_mode = filtered_df.groupby('Ship Mode')['Delay Gap'].mean().idxmax()
+    worst_region = filtered_df.groupby('Region')['Delay Gap'].mean().idxmax()
+
+    st.error(f"🚨 Highest delays in {worst_mode}")
+    st.warning(f"⚠️ High-risk region: {worst_region}")
+
+# =======================
+# TREND
+# =======================
+st.subheader("📈 Trend Analysis")
+
+if not filtered_df.empty:
+    trend = filtered_df.groupby(filtered_df['Order Date'].dt.to_period('M')).size().reset_index(name='Orders')
+    trend['Order Date'] = trend['Order Date'].astype(str)
+
+    fig = px.line(trend, x='Order Date', y='Orders', markers=True)
+    st.plotly_chart(fig, use_container_width=True)
