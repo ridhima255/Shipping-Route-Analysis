@@ -122,7 +122,7 @@ leader = df.groupby('Ship Mode').agg({
 leader.columns = ['Ship Mode','Avg Lead Time','Orders']
 
 st.dataframe(leader.sort_values('Avg Lead Time'))
-fig = px.box(df, x='Ship Mode', y='Actual Days')
+fig = px.box(df, x='Ship Mode', y='Lead Time')
 st.plotly_chart(fig, use_container_width=True)
 st.subheader("Correlation Insight")
 st.write("Higher lead time observed in:", df.groupby('Ship Mode')['Actual Days'].mean().idxmax())
