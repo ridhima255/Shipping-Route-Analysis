@@ -7,13 +7,25 @@ st.set_page_config(layout="wide")
 st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #f3e8ff, #ffe4e6);
+    background: linear-gradient(135deg, #f5f3ff, #ffe4e6);
 }
-h1,h2,h3 { color:#4c1d95; }
+[data-testid="stHeader"] {
+    background: rgba(0,0,0,0);
+}
+.block-container {
+    padding-top: 1rem;
+}
+h1 {
+    color: #6b21a8;
+    text-align: center;
+}
+h2,h3 {
+    color: #7c3aed;
+}
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Logistics Intelligence Dashboard")
+st.title("Shipping Route Analysis Dashboard")
 
 df = pd.read_csv('data.csv')
 
@@ -24,12 +36,24 @@ df['Lead Time'] = (df['Ship Date'] - df['Order Date']).dt.days
 
 threshold = st.sidebar.slider("Delay Threshold", 1, 2000, 1000)
 
-df['Status'] = df['Lead Time'].apply(lambda x: 'Delayed' if x > threshold else 'On-Time')
+df['Status'] = df['Lead Time'].apply(
+    lambda x: 'Delayed' if x > threshold else 'On-Time'
+)
 
-state = st.sidebar.multiselect("State", df['State/Province'].unique(), default=df['State/Province'].unique())
-mode = st.sidebar.multiselect("Ship Mode", df['Ship Mode'].unique(), default=df['Ship Mode'].unique())
+state = st.sidebar.multiselect(
+    "State", df['State/Province'].unique(),
+    default=df['State/Province'].unique()
+)
 
-df = df[df['State/Province'].isin(state) & df['Ship Mode'].isin(mode)]
+mode = st.sidebar.multiselect(
+    "Ship Mode", df['Ship Mode'].unique(),
+    default=df['Ship Mode'].unique()
+)
+
+df = df[
+    (df['State/Province'].isin(state)) &
+    (df['Ship Mode'].isin(mode))
+]
 
 st.markdown("### Key Metrics")
 
@@ -38,7 +62,7 @@ col1,col2,col3,col4 = st.columns(4)
 col1.metric("Avg Lead Time", round(df['Lead Time'].mean(),2))
 col2.metric("Total Orders", len(df))
 col3.metric("Total Routes", df['State/Province'].nunique())
-col4.metric("Max Delay", df['Lead Time'].max())
+col4.metric("Max Lead Time", df['Lead Time'].max())
 
 st.markdown("---")
 
@@ -91,10 +115,16 @@ state_abbrev = {
 
 geo = df.groupby('State/Province')['Lead Time'].mean().reset_index()
 geo['code'] = geo['State/Province'].map(state_abbrev)
+geo = geo.dropna()
 
-fig = px.choropleth(geo, locations='code', locationmode="USA-states",
-                    color='Lead Time', scope="usa",
-                    color_continuous_scale="RdYlGn_r")
+fig = px.choropleth(
+    geo,
+    locations='code',
+    locationmode="USA-states",
+    color='Lead Time',
+    scope="usa",
+    color_continuous_scale="RdYlGn_r"
+)
 
 st.plotly_chart(fig, use_container_width=True)
 
@@ -122,9 +152,13 @@ leader = df.groupby('Ship Mode').agg({
 leader.columns = ['Ship Mode','Avg Lead Time','Orders']
 
 st.dataframe(leader.sort_values('Avg Lead Time'))
-fig = px.box(df, x='Ship Mode', y='Lead Time')
-st.plotly_chart(fig, use_container_width=True)
-st.subheader("Correlation Insight")
-st.write("Higher lead time observed in:", df.groupby('Ship Mode')['Actual Days'].mean().idxmax())
+
+st.markdown("---")
+
+st.subheader("Insights")
+
+st.write("Highest delay observed in:",
+         df.groupby('Ship Mode')['Lead Time'].mean().idxmax())
+
 if st.checkbox("Show Only Delayed Orders"):
     st.dataframe(df[df['Status']=='Delayed'])
