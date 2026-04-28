@@ -22,10 +22,11 @@ df = pd.read_csv('data.csv')
 df['Order Date'] = pd.to_datetime(df['Order Date'], dayfirst=True)
 df['Ship Date'] = pd.to_datetime(df['Ship Date'], dayfirst=True)
 df['Actual Days'] = (df['Ship Date'] - df['Order Date']).dt.days
-df['Scheduled Days'] = df.get('Days for shipment (scheduled)', df['Actual Days'] - 2)
-df['Delay Gap'] = df['Actual Days'] - df['Scheduled Days']
-df['Status'] = df['Delay Gap'].apply(lambda x: 'Delayed' if x>0 else ('Early' if x<0 else 'On-Time'))
-st.sidebar.header("Filters")
+threshold = st.sidebar.slider("Delay Threshold (Days)", 1, 20, 7)
+
+df['Status'] = df['Actual Days'].apply(
+    lambda x: 'Delayed' if x > threshold else 'On-Time'
+)
 state = st.sidebar.multiselect("State", df['State/Province'].unique(), default=df['State/Province'].unique())
 mode = st.sidebar.multiselect("Ship Mode", df['Ship Mode'].unique(), default=df['Ship Mode'].unique())
 df = df[df['State/Province'].isin(state) & df['Ship Mode'].isin(mode)]
