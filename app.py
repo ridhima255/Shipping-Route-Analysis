@@ -1,26 +1,45 @@
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+import plotly.io as pio
+
+pio.templates.default = "plotly_white"
 
 st.set_page_config(layout="wide")
 
 st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #f5f3ff, #ffe4e6);
+    background: linear-gradient(135deg, #f3e8ff, #ffe4e6);
 }
+
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #1e1b4b, #312e81);
+}
+
 [data-testid="stHeader"] {
     background: rgba(0,0,0,0);
 }
+
 .block-container {
     padding-top: 1rem;
 }
+
 h1 {
     color: #6b21a8;
     text-align: center;
+    font-size: 50px;
 }
+
 h2,h3 {
     color: #7c3aed;
+}
+
+[data-testid="metric-container"] {
+    background: rgba(255,255,255,0.6);
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -41,12 +60,14 @@ df['Status'] = df['Lead Time'].apply(
 )
 
 state = st.sidebar.multiselect(
-    "State", df['State/Province'].unique(),
+    "State",
+    df['State/Province'].unique(),
     default=df['State/Province'].unique()
 )
 
 mode = st.sidebar.multiselect(
-    "Ship Mode", df['Ship Mode'].unique(),
+    "Ship Mode",
+    df['Ship Mode'].unique(),
     default=df['Ship Mode'].unique()
 )
 
@@ -55,7 +76,7 @@ df = df[
     (df['Ship Mode'].isin(mode))
 ]
 
-st.markdown("### Key Metrics")
+st.markdown("## Key Metrics")
 
 col1,col2,col3,col4 = st.columns(4)
 
@@ -67,31 +88,66 @@ col4.metric("Max Lead Time", df['Lead Time'].max())
 st.markdown("---")
 
 st.subheader("Lead Time Distribution")
-fig = px.histogram(df, x='Lead Time', nbins=30, color='Status')
+
+fig = px.histogram(
+    df,
+    x='Lead Time',
+    nbins=30,
+    color='Status',
+    color_discrete_sequence=['#8b5cf6','#ec4899']
+)
+
 st.plotly_chart(fig, use_container_width=True)
 
 colA,colB = st.columns(2)
 
 with colA:
+
     st.subheader("Shipping Mode Comparison")
-    fig = px.box(df, x='Ship Mode', y='Lead Time', color='Ship Mode')
+
+    fig = px.box(
+        df,
+        x='Ship Mode',
+        y='Lead Time',
+        color='Ship Mode'
+    )
+
     st.plotly_chart(fig, use_container_width=True)
 
 with colB:
+
     st.subheader("Orders by Mode")
+
     mode_count = df['Ship Mode'].value_counts().reset_index()
     mode_count.columns = ['Ship Mode','Orders']
-    fig = px.bar(mode_count, x='Ship Mode', y='Orders', color='Orders')
+
+    fig = px.bar(
+        mode_count,
+        x='Ship Mode',
+        y='Orders',
+        color='Orders',
+        color_continuous_scale='purples'
+    )
+
     st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
 st.subheader("Orders Over Time")
 
-trend = df.groupby(df['Order Date'].dt.to_period('M')).size().reset_index(name='Orders')
+trend = df.groupby(
+    df['Order Date'].dt.to_period('M')
+).size().reset_index(name='Orders')
+
 trend['Order Date'] = trend['Order Date'].astype(str)
 
-fig = px.line(trend, x='Order Date', y='Orders', markers=True)
+fig = px.line(
+    trend,
+    x='Order Date',
+    y='Orders',
+    markers=True
+)
+
 st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
@@ -114,7 +170,9 @@ state_abbrev = {
 }
 
 geo = df.groupby('State/Province')['Lead Time'].mean().reset_index()
+
 geo['code'] = geo['State/Province'].map(state_abbrev)
+
 geo = geo.dropna()
 
 fig = px.choropleth(
@@ -123,7 +181,7 @@ fig = px.choropleth(
     locationmode="USA-states",
     color='Lead Time',
     scope="usa",
-    color_continuous_scale="RdYlGn_r"
+    color_continuous_scale="RdPu"
 )
 
 st.plotly_chart(fig, use_container_width=True)
@@ -133,12 +191,24 @@ st.markdown("---")
 colC,colD = st.columns(2)
 
 with colC:
+
     st.subheader("Top Routes")
-    st.dataframe(df.groupby('State/Province')['Lead Time'].mean().nsmallest(5))
+
+    top_routes = df.groupby(
+        'State/Province'
+    )['Lead Time'].mean().nsmallest(5)
+
+    st.dataframe(top_routes)
 
 with colD:
+
     st.subheader("Worst Routes")
-    st.dataframe(df.groupby('State/Province')['Lead Time'].mean().nlargest(5))
+
+    worst_routes = df.groupby(
+        'State/Province'
+    )['Lead Time'].mean().nlargest(5)
+
+    st.dataframe(worst_routes)
 
 st.markdown("---")
 
@@ -151,14 +221,29 @@ leader = df.groupby('Ship Mode').agg({
 
 leader.columns = ['Ship Mode','Avg Lead Time','Orders']
 
-st.dataframe(leader.sort_values('Avg Lead Time'))
+st.dataframe(
+    leader.sort_values('Avg Lead Time')
+)
 
 st.markdown("---")
 
-st.subheader("Insights")
+st.subheader("Delay Insights")
 
-st.write("Highest delay observed in:",
-         df.groupby('Ship Mode')['Lead Time'].mean().idxmax())
+fig = px.scatter(
+    df,
+    x='Lead Time',
+    y='Order Date',
+    color='Ship Mode',
+    size='Lead Time'
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+highest_mode = df.groupby(
+    'Ship Mode'
+)['Lead Time'].mean().idxmax()
+
+st.info(f"Highest average lead time observed in: {highest_mode}")
 
 if st.checkbox("Show Only Delayed Orders"):
     st.dataframe(df[df['Status']=='Delayed'])
