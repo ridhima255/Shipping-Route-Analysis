@@ -42,6 +42,9 @@ h3 {
     color: #6d28d9;
     font-size: 28px;
     font-weight: 700;
+    label, p, div {
+    color: #312e81 !important;
+}
 }
 
 [data-testid="metric-container"] {
