@@ -9,6 +9,7 @@ st.set_page_config(layout="wide")
 
 st.markdown("""
 <style>
+
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(135deg, #f3e8ff, #ffe4e6);
 }
@@ -26,39 +27,48 @@ st.markdown("""
 }
 
 h1 {
-    color: #4c1d95;
+    color: #4c1d95 !important;
     text-align: center;
-    font-size: 52px;
-    font-weight: bold;
+    font-size: 52px !important;
+    font-weight: 800 !important;
 }
 
 h2 {
-    color: #5b21b6;
-    font-size: 38px;
-    font-weight: bold;
+    color: #5b21b6 !important;
+    font-size: 40px !important;
+    font-weight: 700 !important;
 }
 
 h3 {
-    color: #6d28d9;
-    font-size: 28px;
-    font-weight: 700;
-    label, p, div {
-    color: #312e81 !important;
+    color: #6d28d9 !important;
+    font-size: 30px !important;
+    font-weight: 700 !important;
 }
+
+p, label, div {
+    color: #312e81;
 }
 
 [data-testid="metric-container"] {
-    background: rgba(255,255,255,0.6);
-    padding: 15px;
-    border-radius: 15px;
-    box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.7);
+    padding: 18px;
+    border-radius: 18px;
+    box-shadow: 0px 4px 18px rgba(0,0,0,0.15);
 }
+
+.stPlotlyChart {
+    background: white;
+    padding: 10px;
+    border-radius: 18px;
+    box-shadow: 0px 4px 15px rgba(0,0,0,0.12);
+}
+
 </style>
 """, unsafe_allow_html=True)
 
 st.title("Shipping Route Analysis Dashboard")
 
-df = pd.read_csv('data.csv')
+df = pd.read_csv("data.csv")
 
 df['Order Date'] = pd.to_datetime(df['Order Date'], dayfirst=True)
 df['Ship Date'] = pd.to_datetime(df['Ship Date'], dayfirst=True)
@@ -72,13 +82,13 @@ df['Status'] = df['Lead Time'].apply(
 )
 
 state = st.sidebar.multiselect(
-    "State",
+    "Select State",
     df['State/Province'].unique(),
     default=df['State/Province'].unique()
 )
 
 mode = st.sidebar.multiselect(
-    "Ship Mode",
+    "Select Ship Mode",
     df['Ship Mode'].unique(),
     default=df['Ship Mode'].unique()
 )
@@ -90,7 +100,7 @@ df = df[
 
 st.markdown("## Key Metrics")
 
-col1,col2,col3,col4 = st.columns(4)
+col1, col2, col3, col4 = st.columns(4)
 
 col1.metric("Avg Lead Time", round(df['Lead Time'].mean(),2))
 col2.metric("Total Orders", len(df))
@@ -111,7 +121,7 @@ fig = px.histogram(
 
 st.plotly_chart(fig, use_container_width=True)
 
-colA,colB = st.columns(2)
+colA, colB = st.columns(2)
 
 with colA:
 
@@ -131,7 +141,7 @@ with colB:
     st.subheader("Orders by Mode")
 
     mode_count = df['Ship Mode'].value_counts().reset_index()
-    mode_count.columns = ['Ship Mode','Orders']
+    mode_count.columns = ['Ship Mode', 'Orders']
 
     fig = px.bar(
         mode_count,
@@ -167,17 +177,24 @@ st.markdown("---")
 st.subheader("Geographic Efficiency")
 
 state_abbrev = {
-'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
-'Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
-'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA',
-'Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD',
-'Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS',
-'Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV',
-'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY',
-'North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
-'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
-'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT',
-'Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV',
+'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR',
+'California':'CA','Colorado':'CO','Connecticut':'CT',
+'Delaware':'DE','Florida':'FL','Georgia':'GA',
+'Hawaii':'HI','Idaho':'ID','Illinois':'IL',
+'Indiana':'IN','Iowa':'IA','Kansas':'KS',
+'Kentucky':'KY','Louisiana':'LA','Maine':'ME',
+'Maryland':'MD','Massachusetts':'MA','Michigan':'MI',
+'Minnesota':'MN','Mississippi':'MS','Missouri':'MO',
+'Montana':'MT','Nebraska':'NE','Nevada':'NV',
+'New Hampshire':'NH','New Jersey':'NJ',
+'New Mexico':'NM','New York':'NY',
+'North Carolina':'NC','North Dakota':'ND',
+'Ohio':'OH','Oklahoma':'OK','Oregon':'OR',
+'Pennsylvania':'PA','Rhode Island':'RI',
+'South Carolina':'SC','South Dakota':'SD',
+'Tennessee':'TN','Texas':'TX','Utah':'UT',
+'Vermont':'VT','Virginia':'VA',
+'Washington':'WA','West Virginia':'WV',
 'Wisconsin':'WI','Wyoming':'WY'
 }
 
@@ -200,7 +217,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
-colC,colD = st.columns(2)
+colC, colD = st.columns(2)
 
 with colC:
 
@@ -231,7 +248,7 @@ leader = df.groupby('Ship Mode').agg({
     'Order Date':'count'
 }).reset_index()
 
-leader.columns = ['Ship Mode','Avg Lead Time','Orders']
+leader.columns = ['Ship Mode', 'Avg Lead Time', 'Orders']
 
 st.dataframe(
     leader.sort_values('Avg Lead Time')
@@ -258,4 +275,4 @@ highest_mode = df.groupby(
 st.info(f"Highest average lead time observed in: {highest_mode}")
 
 if st.checkbox("Show Only Delayed Orders"):
-    st.dataframe(df[df['Status']=='Delayed'])
+    st.dataframe(df[df['Status'] == 'Delayed'])
