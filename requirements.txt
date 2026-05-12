@@ -1,12 +1,4 @@
-<<<<<<< HEAD
 streamlit
 pandas
 plotly
-=======
-pandas
-numpy
-matplotlib
-seaborn
-streamlit
-plotify
->>>>>>> 081667db7467033716e6937e031602e37c7a244c
+openpyxl
