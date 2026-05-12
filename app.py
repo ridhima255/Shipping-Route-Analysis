@@ -26,9 +26,22 @@ st.markdown("""
 }
 
 h1 {
-    color: #6b21a8;
+    color: #4c1d95;
     text-align: center;
-    font-size: 50px;
+    font-size: 52px;
+    font-weight: bold;
+}
+
+h2 {
+    color: #5b21b6;
+    font-size: 38px;
+    font-weight: bold;
+}
+
+h3 {
+    color: #6d28d9;
+    font-size: 28px;
+    font-weight: 700;
 }
 
 h2,h3 {
