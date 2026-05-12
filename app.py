@@ -68,7 +68,7 @@ p, label, div {
 
 st.title("Shipping Route Analysis Dashboard")
 
-df = pd.read_csv("data.csv", encoding='latin1')
+df = pd.read_excel("data.xls")
 
 df['Order Date'] = pd.to_datetime(df['Order Date'], dayfirst=True)
 df['Ship Date'] = pd.to_datetime(df['Ship Date'], dayfirst=True)
@@ -112,7 +112,7 @@ st.markdown("## Key Metrics")
 
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric("Avg Lead Time", round(df['Lead Time'].mean(),2))
+col1.metric("Avg Lead Time", round(df['Lead Time'].mean(), 2))
 col2.metric("Total Orders", len(df))
 col3.metric("Total Routes", df['State/Province'].nunique())
 col4.metric("Max Lead Time", df['Lead Time'].max())
@@ -126,7 +126,7 @@ fig = px.histogram(
     x='Lead Time',
     nbins=30,
     color='Status',
-    color_discrete_sequence=['#8b5cf6','#ec4899']
+    color_discrete_sequence=['#8b5cf6', '#ec4899']
 )
 
 st.plotly_chart(fig, use_container_width=True)
