@@ -44,10 +44,6 @@ h3 {
     font-weight: 700;
 }
 
-h2,h3 {
-    color: #7c3aed;
-}
-
 [data-testid="metric-container"] {
     background: rgba(255,255,255,0.6);
     padding: 15px;
