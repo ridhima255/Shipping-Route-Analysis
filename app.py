@@ -92,10 +92,26 @@ mode = st.sidebar.multiselect(
     df['Ship Mode'].unique(),
     default=df['Ship Mode'].unique()
 )
+date_range = st.sidebar.date_input(
+    "Select Date Range",
+    [df['Order Date'].min(), df['Order Date'].max()]
+)
+
+start_date = pd.to_datetime(date_range[0])
+end_date = pd.to_datetime(date_range[1])
+
+segment = st.sidebar.multiselect(
+    "Customer Segment",
+    df['Customer Segment'].unique(),
+    default=df['Customer Segment'].unique()
+)
 
 df = df[
     (df['State/Province'].isin(state)) &
-    (df['Ship Mode'].isin(mode))
+    (df['Ship Mode'].isin(mode)) &
+    (df['Customer Segment'].isin(segment)) &
+    (df['Order Date'] >= start_date) &
+    (df['Order Date'] <= end_date)
 ]
 
 st.markdown("## Key Metrics")
