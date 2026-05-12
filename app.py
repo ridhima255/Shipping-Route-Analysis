@@ -92,6 +92,7 @@ mode = st.sidebar.multiselect(
     df['Ship Mode'].unique(),
     default=df['Ship Mode'].unique()
 )
+
 date_range = st.sidebar.date_input(
     "Select Date Range",
     [df['Order Date'].min(), df['Order Date'].max()]
@@ -99,7 +100,6 @@ date_range = st.sidebar.date_input(
 
 start_date = pd.to_datetime(date_range[0])
 end_date = pd.to_datetime(date_range[1])
-)
 
 df = df[
     (df['State/Province'].isin(state)) &
