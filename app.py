@@ -165,6 +165,22 @@ fig = px.bar(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+st.markdown("---")
+
+st.subheader("Geographic Efficiency Map")
+
+geo = df.groupby('Customer State')['Lead Time'].mean().reset_index()
+
+fig = px.choropleth(
+    geo,
+    locations='Customer State',
+    locationmode="USA-states",
+    color='Lead Time',
+    scope="usa",
+    color_continuous_scale="RdPu"
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
