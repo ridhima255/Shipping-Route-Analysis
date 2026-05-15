@@ -45,8 +45,14 @@ h3 {
     font-weight: 700 !important;
 }
 
-p, label, div {
-    color: #312e81;
+p, div {
+    color: white;
+}
+
+label {
+    color: white !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
 }
 
 [data-testid="metric-container"] {
