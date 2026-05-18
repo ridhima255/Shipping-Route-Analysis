@@ -14,7 +14,7 @@ st.markdown("""
 <style>
 
 [data-testid="stAppViewContainer"] {
-    background: #f5f5f5;
+    background: #f3f4f6;
 }
 
 [data-testid="stSidebar"] {
@@ -30,13 +30,13 @@ st.markdown("""
 }
 
 h1 {
-    color: #2e7d32 !important;
-    font-size: 42px !important;
+    color: #111827 !important;
+    font-size: 48px !important;
     font-weight: 800 !important;
 }
 
 h2, h3 {
-    color: #1f2937 !important;
+    color: #111827 !important;
     font-weight: 700 !important;
 }
 
@@ -47,32 +47,15 @@ label {
 }
 
 [data-testid="metric-container"] {
-    background: white;
+    background: white !important;
     border-left: 6px solid #7c3aed;
     padding: 18px;
     border-radius: 15px;
     box-shadow: 0px 3px 12px rgba(0,0,0,0.12);
 }
 
-[data-testid="metric-container"] label {
-    color: #374151 !important;
-    font-weight: 700 !important;
-}
-
-[data-testid="metric-container"] label {
-    color: #374151 !important;
-    font-weight: 700 !important;
-}
-
-[data-testid="metric-container"] p {
+[data-testid="metric-container"] * {
     color: #111827 !important;
-}
-
-[data-testid="metric-container"] div {
-    color: #111827 !important;
-    font-size: 42px !important;
-    font-weight: 800 !important;
-}
 }
 
 .stPlotlyChart {
@@ -85,7 +68,7 @@ label {
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Shipping Route Analysis Dashboard")
+st.title("Logistics Performance Insights")
 
 df = pd.read_csv("data.csv")
 
@@ -133,9 +116,7 @@ df = df[
     (df['Market'].isin(market))
 ]
 
-# KPI SECTION
-
-st.markdown("## Logistics Performance Insights")
+# KPI CARDS
 
 k1, k2, k3, k4 = st.columns(4)
 
