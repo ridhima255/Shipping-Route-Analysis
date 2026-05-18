@@ -225,21 +225,29 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
-st.subheader("Geographic Efficiency Overview")
+st.subheader("Geographic Delivery Risk Bubble Map")
 
-state_delay = df.groupby(
-    'Order State'
-)['Delay Gap'].mean().reset_index()
+geo = df.groupby(
+    ['Order State']
+).agg({
+    'Delay Gap':'mean',
+    'Sales':'sum'
+}).reset_index()
 
-fig = px.bar(
-    state_delay.sort_values(
-        'Delay Gap',
-        ascending=False
-    ).head(15),
+fig = px.scatter(
+    geo,
     x='Order State',
     y='Delay Gap',
+    size='Sales',
     color='Delay Gap',
-    color_continuous_scale='RdPu'
+    hover_name='Order State',
+    color_continuous_scale='RdPu',
+    size_max=45
+)
+
+fig.update_layout(
+    xaxis_title="Order State",
+    yaxis_title="Average Delivery Delay",
 )
 
 st.plotly_chart(fig, use_container_width=True)
