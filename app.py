@@ -225,32 +225,20 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
-st.subheader("Geographic Efficiency Map")
+st.subheader("Geographic Efficiency Overview")
 
-geo = df[['Latitude', 'Longitude', 'Delay Gap', 'Order State']].copy()
+state_delay = df.groupby(
+    'Order State'
+)['Delay Gap'].mean().reset_index()
 
-geo = geo.dropna()
-
-geo['Latitude'] = pd.to_numeric(geo['Latitude'], errors='coerce')
-geo['Longitude'] = pd.to_numeric(geo['Longitude'], errors='coerce')
-
-geo = geo.dropna()
-
-geo = geo[
-    (geo['Latitude'] >= -90) &
-    (geo['Latitude'] <= 90) &
-    (geo['Longitude'] >= -180) &
-    (geo['Longitude'] <= 180)
-]
-
-fig = px.scatter_geo(
-    geo,
-    lat='Latitude',
-    lon='Longitude',
+fig = px.bar(
+    state_delay.sort_values(
+        'Delay Gap',
+        ascending=False
+    ).head(15),
+    x='Order State',
+    y='Delay Gap',
     color='Delay Gap',
-    hover_name='Order State',
-    size='Delay Gap',
-    projection='natural earth',
     color_continuous_scale='RdPu'
 )
 
