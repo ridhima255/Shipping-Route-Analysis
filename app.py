@@ -137,7 +137,7 @@ df = df[
     (df['Market'].isin(market))
 ]
 
-st.markdown("## Key Performance Indicators")
+st.markdown("## Business Performance Overview")
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -225,7 +225,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
-st.subheader("Geographic Delivery Risk Bubble Map")
+st.subheader("Geographic Delivery Risk ")
 
 geo = df.groupby(
     ['Order State']
