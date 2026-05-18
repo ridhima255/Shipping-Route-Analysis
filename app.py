@@ -1,12 +1,5 @@
 import pandas as pd
 import streamlit as st
-
-st.set_page_config(layout="wide")
-
-st.title("Dataset Column Checker")
-
-df = pd.read_csv("data.csv")import pandas as pd
-import streamlit as st
 import plotly.express as px
 import plotly.io as pio
 
@@ -362,5 +355,3 @@ if st.checkbox("Show Only Delayed Orders"):
     st.dataframe(
         df[df['Status'] == 'Delayed']
     )
-
-st.write(df.columns)
