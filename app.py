@@ -94,6 +94,7 @@ label {
 st.title("Shipping Route Analysis Dashboard")
 
 df = pd.read_csv("data.csv")
+st.write(df.columns)
 
 df['Order Date'] = pd.to_datetime(df['Order Date'], dayfirst=True)
 df['Ship Date'] = pd.to_datetime(df['Ship Date'], dayfirst=True)
