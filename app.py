@@ -3,7 +3,7 @@ import streamlit as st
 import plotly.express as px
 import plotly.io as pio
 
-pio.templates.default = "plotly_dark"
+pio.templates.default = "plotly_white"
 
 st.set_page_config(
     page_title="Shipping Route Analysis Dashboard",
@@ -13,15 +13,8 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] .stMarkdown,
-section[data-testid="stSidebar"] p {
-    color: white !important;
-    font-weight: 700 !important;
-}
-
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(135deg, #f3e8ff, #ffe4e6);
+    background: #f5f5f5;
 }
 
 [data-testid="stSidebar"] {
@@ -37,55 +30,44 @@ section[data-testid="stSidebar"] p {
 }
 
 h1 {
-    color: #4c1d95 !important;
-    text-align: center;
-    font-size: 52px !important;
+    color: #2e7d32 !important;
+    font-size: 42px !important;
     font-weight: 800 !important;
 }
 
-h2 {
-    color: #5b21b6 !important;
-    font-size: 36px !important;
+h2, h3 {
+    color: #1f2937 !important;
     font-weight: 700 !important;
-}
-
-h3 {
-    color: #6d28d9 !important;
-    font-size: 28px !important;
-    font-weight: 700 !important;
-}
-
-p {
-    color: #312e81;
 }
 
 label {
     color: white !important;
-    font-size: 18px !important;
+    font-size: 16px !important;
     font-weight: 700 !important;
 }
 
 [data-testid="metric-container"] {
-    background: rgba(255,255,255,0.75);
+    background: white;
+    border-left: 6px solid #7c3aed;
     padding: 18px;
-    border-radius: 18px;
-    box-shadow: 0px 4px 18px rgba(0,0,0,0.15);
+    border-radius: 15px;
+    box-shadow: 0px 3px 12px rgba(0,0,0,0.12);
 }
 
 [data-testid="metric-container"] label {
-    color: #4c1d95 !important;
+    color: #374151 !important;
     font-weight: 700 !important;
 }
 
 [data-testid="metric-container"] div {
-    color: #4c1d95 !important;
+    color: #111827 !important;
 }
 
 .stPlotlyChart {
-    background: rgba(255,255,255,0.06);
-    padding: 12px;
-    border-radius: 18px;
-    box-shadow: 0px 4px 15px rgba(0,0,0,0.12);
+    background: white;
+    padding: 10px;
+    border-radius: 16px;
+    box-shadow: 0px 3px 10px rgba(0,0,0,0.08);
 }
 
 </style>
@@ -106,26 +88,28 @@ df['Status'] = df['Delay Gap'].apply(
     lambda x: 'Delayed' if x > 0 else 'On-Time'
 )
 
+# SIDEBAR FILTERS
+
 state = st.sidebar.multiselect(
-    "Select Customer State",
+    "Customer State",
     sorted(df['Customer State'].dropna().unique()),
     default=sorted(df['Customer State'].dropna().unique())
 )
 
 mode = st.sidebar.multiselect(
-    "Select Shipping Mode",
+    "Shipping Mode",
     sorted(df['Shipping Mode'].dropna().unique()),
     default=sorted(df['Shipping Mode'].dropna().unique())
 )
 
 segment = st.sidebar.multiselect(
-    "Select Customer Segment",
+    "Customer Segment",
     sorted(df['Customer Segment'].dropna().unique()),
     default=sorted(df['Customer Segment'].dropna().unique())
 )
 
 market = st.sidebar.multiselect(
-    "Select Market",
+    "Market",
     sorted(df['Market'].dropna().unique()),
     default=sorted(df['Market'].dropna().unique())
 )
@@ -137,126 +121,169 @@ df = df[
     (df['Market'].isin(market))
 ]
 
-st.markdown("## Business Performance Overview")
+# KPI SECTION
 
-col1, col2, col3, col4 = st.columns(4)
+st.markdown("## Logistics Performance Insights")
 
-col1.metric(
-    "On-Time Delivery %",
-    f"{round((df['Status']=='On-Time').mean()*100,2)}%"
-)
+k1, k2, k3, k4 = st.columns(4)
 
-col2.metric(
-    "Average Delivery Delay",
-    f"{round(df['Delay Gap'].mean(),2)} Days"
-)
+with k1:
+    st.metric(
+        "On-Time Delivery %",
+        f"{round((df['Status']=='On-Time').mean()*100,2)}%"
+    )
 
-col3.metric(
-    "Late Delivery Risk Ratio",
-    f"{round(df['Late_delivery_risk'].mean()*100,2)}%"
-)
+with k2:
+    st.metric(
+        "Avg Delivery Delay",
+        f"{round(df['Delay Gap'].mean(),2)} Days"
+    )
 
-col4.metric(
-    "Total Orders",
-    len(df)
-)
+with k3:
+    st.metric(
+        "Late Delivery Risk",
+        f"{round(df['Late_delivery_risk'].mean()*100,2)}%"
+    )
+
+with k4:
+    st.metric(
+        "Total Orders",
+        len(df)
+    )
 
 st.markdown("---")
 
-st.subheader("Lead Time Distribution")
+# ROW 1
 
-fig = px.histogram(
-    df,
-    x='Lead Time',
-    nbins=30,
-    color='Status',
-    color_discrete_sequence=['#8b5cf6', '#ec4899']
-)
+c1, c2 = st.columns(2)
 
-st.plotly_chart(fig, use_container_width=True)
+with c1:
 
-colA, colB = st.columns(2)
+    st.subheader("Lead Time Distribution")
 
-with colA:
+    fig1 = px.histogram(
+        df,
+        x='Lead Time',
+        color='Status',
+        nbins=30,
+        color_discrete_sequence=['#43a047', '#ef5350']
+    )
+
+    fig1.update_layout(height=350)
+
+    st.plotly_chart(fig1, use_container_width=True)
+
+with c2:
 
     st.subheader("Shipping Mode Efficiency")
 
-    fig = px.box(
+    fig2 = px.box(
         df,
         x='Shipping Mode',
         y='Delay Gap',
         color='Shipping Mode'
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    fig2.update_layout(height=350)
 
-with colB:
+    st.plotly_chart(fig2, use_container_width=True)
 
-    st.subheader("Late Delivery Risk Distribution")
+# ROW 2
 
-    fig = px.pie(
-        df,
-        names='Late_delivery_risk',
-        color_discrete_sequence=['#8b5cf6','#ec4899']
+c3, c4 = st.columns(2)
+
+with c3:
+
+    st.subheader("Regional Delay Analysis")
+
+    region_delay = df.groupby(
+        'Order Region'
+    )['Delay Gap'].mean().reset_index()
+
+    fig3 = px.bar(
+        region_delay,
+        x='Order Region',
+        y='Delay Gap',
+        color='Delay Gap',
+        color_continuous_scale='RdYlGn_r'
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    fig3.update_layout(height=350)
 
-st.markdown("---")
+    st.plotly_chart(fig3, use_container_width=True)
 
-st.subheader("Regional Delay Analysis")
+with c4:
 
-region_delay = df.groupby(
-    'Order Region'
-)['Delay Gap'].mean().reset_index()
+    st.subheader("Customer Segment Impact")
 
-fig = px.bar(
-    region_delay.sort_values(
-        'Delay Gap',
-        ascending=False
-    ),
-    x='Order Region',
-    y='Delay Gap',
-    color='Delay Gap',
-    color_continuous_scale='RdPu'
-)
+    segment_delay = df.groupby(
+        'Customer Segment'
+    )['Delay Gap'].mean().reset_index()
 
-st.plotly_chart(fig, use_container_width=True)
+    fig4 = px.bar(
+        segment_delay,
+        x='Customer Segment',
+        y='Delay Gap',
+        color='Delay Gap',
+        color_continuous_scale='Sunset'
+    )
 
-st.markdown("---")
+    fig4.update_layout(height=350)
 
-st.subheader("Geographic Delivery Risk ")
+    st.plotly_chart(fig4, use_container_width=True)
 
-geo = df.groupby(
-    ['Order State']
-).agg({
-    'Delay Gap':'mean',
-    'Sales':'sum'
-}).reset_index()
+# ROW 3
 
-fig = px.scatter(
-    geo,
-    x='Order State',
-    y='Delay Gap',
-    size='Sales',
-    color='Delay Gap',
-    hover_name='Order State',
-    color_continuous_scale='RdPu',
-    size_max=45
-)
+c5, c6 = st.columns(2)
 
-fig.update_layout(
-    xaxis_title="Order State",
-    yaxis_title="Average Delivery Delay",
-)
+with c5:
 
-st.plotly_chart(fig, use_container_width=True)
+    st.subheader("Delivery Risk Bubble Map")
 
-st.markdown("---")
+    geo = df.groupby(
+        'Order State'
+    ).agg({
+        'Delay Gap':'mean',
+        'Sales':'sum'
+    }).reset_index()
 
-colC, colD = st.columns(2)
+    fig5 = px.scatter(
+        geo,
+        x='Order State',
+        y='Delay Gap',
+        size='Sales',
+        color='Delay Gap',
+        hover_name='Order State',
+        color_continuous_scale='RdPu',
+        size_max=40
+    )
 
-with colC:
+    fig5.update_layout(height=350)
+
+    st.plotly_chart(fig5, use_container_width=True)
+
+with c6:
+
+    st.subheader("Sales vs Delivery Delay")
+
+    fig6 = px.scatter(
+        df,
+        x='Delay Gap',
+        y='Sales',
+        color='Shipping Mode',
+        size='Sales',
+        hover_data=['Product Name']
+    )
+
+    fig6.update_layout(height=350)
+
+    st.plotly_chart(fig6, use_container_width=True)
+
+# ROW 4
+
+c7, c8 = st.columns(2)
+
+with c7:
 
     st.subheader("Top Performing States")
 
@@ -266,7 +293,7 @@ with colC:
 
     st.dataframe(top_routes)
 
-with colD:
+with c8:
 
     st.subheader("Worst Performing States")
 
@@ -275,60 +302,6 @@ with colD:
     )['Delay Gap'].mean().nlargest(5)
 
     st.dataframe(worst_routes)
-
-st.markdown("---")
-
-st.subheader("Market Wise Logistics Efficiency")
-
-market_delay = df.groupby(
-    'Market'
-)['Delay Gap'].mean().reset_index()
-
-fig = px.bar(
-    market_delay.sort_values(
-        'Delay Gap',
-        ascending=False
-    ),
-    x='Market',
-    y='Delay Gap',
-    color='Delay Gap',
-    color_continuous_scale='Sunset'
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-st.markdown("---")
-
-st.subheader("Sales vs Delivery Delay")
-
-fig = px.scatter(
-    df,
-    x='Delay Gap',
-    y='Sales',
-    color='Shipping Mode',
-    size='Sales',
-    hover_data=['Product Name']
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-st.markdown("---")
-
-st.subheader("Customer Segment Impact")
-
-segment_delay = df.groupby(
-    'Customer Segment'
-)['Delay Gap'].mean().reset_index()
-
-fig = px.bar(
-    segment_delay,
-    x='Customer Segment',
-    y='Delay Gap',
-    color='Delay Gap',
-    color_continuous_scale='Purp'
-)
-
-st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
@@ -355,7 +328,7 @@ highest_mode = df.groupby(
     'Shipping Mode'
 )['Delay Gap'].mean().idxmax()
 
-st.info(
+st.success(
     f"Highest average delay observed in: {highest_mode}"
 )
 
