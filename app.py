@@ -59,8 +59,20 @@ label {
     font-weight: 700 !important;
 }
 
+[data-testid="metric-container"] label {
+    color: #374151 !important;
+    font-weight: 700 !important;
+}
+
+[data-testid="metric-container"] p {
+    color: #111827 !important;
+}
+
 [data-testid="metric-container"] div {
     color: #111827 !important;
+    font-size: 42px !important;
+    font-weight: 800 !important;
+}
 }
 
 .stPlotlyChart {
