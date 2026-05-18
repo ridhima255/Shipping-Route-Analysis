@@ -54,8 +54,25 @@ label {
     box-shadow: 0px 3px 12px rgba(0,0,0,0.12);
 }
 
-[data-testid="metric-container"] * {
-    color: #111827 !important;
+[data-testid="metric-container"] {
+    background: white !important;
+    border-left: 6px solid #7c3aed;
+    padding: 18px;
+    border-radius: 15px;
+    box-shadow: 0px 3px 12px rgba(0,0,0,0.12);
+}
+
+[data-testid="metric-container"] label {
+    color: black !important;
+    font-weight: 700 !important;
+    font-size: 16px !important;
+}
+
+[data-testid="metric-container"] div {
+    color: black !important;
+    font-size: 40px !important;
+    font-weight: 800 !important;
+}
 }
 
 .stPlotlyChart {
